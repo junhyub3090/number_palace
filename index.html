@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>러닝 숫자야구</title>
     <link rel="stylesheet" href="src/ui/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+          "firebase/analytics": "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js"
+        }
+      }
+    </script>
   </head>
   <body>
     <main class="app-shell">
@@ -67,12 +75,13 @@
       </aside>
     </main>
 
-    <script src="src/core/game-core.js"></script>
-    <script src="src/game/config.js"></script>
-    <script src="src/game/audio.js"></script>
-    <script src="src/game/effects.js"></script>
-    <script src="src/ui/hud.js"></script>
-    <script src="src/rendering/canvas-renderer.js"></script>
-    <script src="src/game/game.js"></script>
+    <script type="module" src="src/firebase/firebaseApi.js"></script>
+    <script defer src="src/core/game-core.js"></script>
+    <script defer src="src/game/config.js"></script>
+    <script defer src="src/game/audio.js"></script>
+    <script defer src="src/game/effects.js"></script>
+    <script defer src="src/ui/hud.js"></script>
+    <script defer src="src/rendering/canvas-renderer.js"></script>
+    <script defer src="src/game/game.js"></script>
   </body>
 </html>

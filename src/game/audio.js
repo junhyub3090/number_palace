@@ -42,6 +42,10 @@
       if (kind === "boost") {
         playTone(380, 0.08, "sawtooth", 0.035, 0);
         playTone(760, 0.16, "triangle", 0.055, 0.055);
+      } else if (kind === "dash") {
+        playTone(150, 0.045, "square", 0.032, 0);
+        playTone(460, 0.07, "sawtooth", 0.04, 0.035);
+        playTone(920, 0.09, "triangle", 0.042, 0.07);
       } else if (kind === "collect") {
         playTone(180, 0.055, "square", 0.032, 0);
         playTone(560, 0.075, "square", 0.045, 0.025);

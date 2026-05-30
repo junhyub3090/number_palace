@@ -127,6 +127,21 @@
       return value - Math.floor(value);
     }
 
+    function clamp01(value) {
+      return Math.max(0, Math.min(1, value || 0));
+    }
+
+    function easeOutCubic(progress) {
+      const inverted = 1 - clamp01(progress);
+      return 1 - inverted * inverted * inverted;
+    }
+
+    function dashImpactProgress(snapshot, impact) {
+      if (!impact) return 0;
+
+      return clamp01((snapshot.timestamp - impact.startTime) / (impact.duration * 1000));
+    }
+
     function fillPolygon(points, color) {
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -410,9 +425,32 @@
       const itemSize = snapshot.tuning.itemSize;
       const top = config.CATCH_Y - config.CATCH_WINDOW;
       const bottom = config.CATCH_Y + config.CATCH_WINDOW;
+      const impact = wave.dashImpact || null;
+      const impactProgress = dashImpactProgress(snapshot, impact);
+      const impactEase = easeOutCubic(impactProgress);
+
+      if (impact) {
+        drawDashImpactCue(wave, impact, impactProgress, itemSize);
+      }
 
       wave.items.forEach((item) => {
         const activeLane = item.lane === snapshot.playerLane;
+        const impactActive = impact && item.lane === impact.lane;
+        const impactAlpha = impact
+          ? impactActive
+            ? 1
+            : 1 - impactEase * 0.42
+          : 1;
+        const impactYOffset = impact
+          ? impactActive
+            ? -Math.sin(impactProgress * Math.PI) * 8
+            : impactEase * 28
+          : 0;
+        const impactScale = impact
+          ? impactActive
+            ? 1 + Math.sin(impactProgress * Math.PI) * 0.14
+            : 1 - impactEase * 0.035
+          : 1;
         const nearCatch =
           activeLane &&
           !wave.handled &&
@@ -423,42 +461,108 @@
           !wave.handled &&
           wave.y >= top &&
           wave.y <= bottom;
+        const inDashImpact = Boolean(impactActive && impactProgress > 0.58);
         const tilePulse = nearCatch ? 1 + Math.sin(snapshot.timestamp / 58) * 0.035 : 1;
+        const itemY = wave.y + impactYOffset;
 
         if (item.kind === "empty") {
-          drawEmptyGate(item.lane, wave.y, itemSize, nearCatch, inCatchZone, tilePulse);
+          drawEmptyGate(
+            item.lane,
+            itemY,
+            itemSize,
+            nearCatch || Boolean(impactActive),
+            inCatchZone || inDashImpact,
+            tilePulse * impactScale,
+            impactAlpha,
+          );
           return;
         }
 
         const x = laneCenter(item.lane);
-        const y = wave.y;
-        const handled = wave.handled && activeLane;
+        const y = itemY;
+        const handled = wave.handled && activeLane && !impact;
         const pulse = handled ? 0.44 : 1;
         const boostGlow = Math.min(8, (snapshot.speedStack || 0) * 0.8);
 
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(tilePulse, tilePulse);
-        ctx.globalAlpha = pulse;
-        ctx.shadowColor = inCatchZone
+        ctx.scale(tilePulse * impactScale, tilePulse * impactScale);
+        ctx.globalAlpha = pulse * impactAlpha;
+        ctx.shadowColor = inCatchZone || inDashImpact
           ? "rgba(241,211,91,0.74)"
           : "rgba(0,0,0,0.38)";
-        ctx.shadowBlur = inCatchZone ? 26 : 14 + boostGlow;
+        ctx.shadowBlur = inCatchZone || inDashImpact ? 26 : 14 + boostGlow;
         ctx.shadowOffsetY = 10;
         drawDigitTile(item.value, 0, 0, itemSize, {
-          active: inCatchZone,
+          active: inCatchZone || inDashImpact,
           radius: 8,
         });
         ctx.restore();
       });
     }
 
-    function drawEmptyGate(lane, y, itemSize, nearCatch, inCatchZone, tilePulse) {
+    function drawDashImpactCue(wave, impact, progress, itemSize) {
+      const laneItem = wave.items.find((item) => item.lane === impact.lane);
+      const color = laneItem && laneItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
+      const x = laneCenter(impact.lane);
+      const late = clamp01((progress - 0.52) / 0.48);
+      const snap = easeOutCubic(progress);
+      const ring = Math.sin(late * Math.PI);
+
+      ctx.save();
+      ctx.lineCap = "round";
+
+      for (let lane = 0; lane < config.LANES; lane += 1) {
+        const laneX = laneCenter(lane);
+        const laneOffset = (lane - 1.5) * 4;
+        ctx.globalAlpha = 0.08 + snap * 0.12;
+        ctx.strokeStyle = lane === impact.lane ? color : "rgba(242,242,234,0.42)";
+        ctx.lineWidth = lane === impact.lane ? 3 : 2;
+        ctx.beginPath();
+        ctx.moveTo(laneX - 22 + laneOffset, Math.max(44, wave.y - itemSize * 1.35));
+        ctx.lineTo(laneX + 8 + laneOffset, config.CATCH_Y - 28);
+        ctx.stroke();
+      }
+
+      if (late > 0) {
+        ctx.globalAlpha = 0.26 * late;
+        ctx.fillStyle = color;
+        roundedRect(
+          x - config.LANE_WIDTH / 2 + 18,
+          config.CATCH_Y - 12,
+          config.LANE_WIDTH - 36,
+          24,
+          8,
+        );
+        ctx.fill();
+
+        ctx.globalAlpha = 0.72 * ring;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(x, config.CATCH_Y, 24 + late * 38, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.56 * ring;
+        ctx.strokeStyle = "#f2f2ea";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - 58, config.CATCH_Y);
+        ctx.lineTo(x - 26, config.CATCH_Y);
+        ctx.moveTo(x + 26, config.CATCH_Y);
+        ctx.lineTo(x + 58, config.CATCH_Y);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawEmptyGate(lane, y, itemSize, nearCatch, inCatchZone, tilePulse, alpha = 1) {
       const x = laneCenter(lane);
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(tilePulse, tilePulse);
-      ctx.globalAlpha = nearCatch ? 0.72 : 0.44;
+      ctx.globalAlpha = (nearCatch ? 0.72 : 0.44) * alpha;
       ctx.strokeStyle = "#4ac7a5";
       ctx.lineWidth = inCatchZone ? 6 : 4;
       ctx.shadowColor = inCatchZone ? "rgba(74,199,165,0.64)" : "transparent";
@@ -586,6 +690,7 @@
 
     function drawOverlay(snapshot) {
       drawTopStats(snapshot);
+      drawHitTray(snapshot);
       drawPickTray(snapshot);
       drawNextPreview(snapshot);
 
@@ -700,9 +805,10 @@
     function drawTopStats(snapshot) {
       const x = 18;
       const y = 18;
-      const width = 164;
+      const width = 174;
       const height = 62;
       const remaining = formatTime(snapshot.remainingMs);
+      const valueX = x + 76;
 
       ctx.save();
       ctx.fillStyle = "rgba(16,17,20,0.56)";
@@ -720,7 +826,7 @@
 
       ctx.fillStyle = "#f2f2ea";
       ctx.font = numberFont(18);
-      ctx.fillText(remaining, x + 58, y + 18);
+      ctx.fillText(remaining, valueX, y + 18);
 
       ctx.fillStyle = "#aeb3aa";
       ctx.font = numberFont(10, 900);
@@ -728,37 +834,68 @@
 
       ctx.fillStyle = "#f1d35b";
       ctx.font = numberFont(19);
-      ctx.fillText(String(snapshot.score), x + 70, y + 43);
+      ctx.fillText(String(snapshot.score), valueX, y + 43);
       ctx.restore();
     }
 
-    function drawPickTray(snapshot) {
-      const currentGuess = snapshot.gameState.currentGuess;
+    function drawHitTray(snapshot) {
       const lastGuess = snapshot.gameState.history[0];
-      const showingCurrent = currentGuess.length > 0;
-      const values = showingCurrent
-        ? currentGuess
-        : lastGuess
-          ? revealMatchedDigits(lastGuess.guess, snapshot.gameState.secret)
-          : [];
-      const label = showingCurrent || !lastGuess ? "PICK" : "HIT";
-      const color = showingCurrent || !lastGuess ? "#f1d35b" : "#4ac7a5";
-      const width = 140;
-      const height = 70;
-      const x = config.WIDTH / 2 - width / 2;
-      const y = 88;
-      const slotSize = 30;
+      const values = lastGuess
+        ? revealMatchedDigits(lastGuess.guess, snapshot.gameState.secret)
+        : [];
+
+      drawNumberTray({
+        label: "HIT",
+        values,
+        color: "#4ac7a5",
+        x: config.WIDTH / 2 - 70,
+        y: 18,
+        width: 140,
+        height: 62,
+        slotSize: 28,
+      });
+    }
+
+    function drawPickTray(snapshot) {
+      drawNumberTray({
+        label: "PICK",
+        values: snapshot.gameState.currentGuess,
+        color: "#f1d35b",
+        x: config.WIDTH / 2 - 70,
+        y: 88,
+        width: 140,
+        height: 70,
+        slotSize: 30,
+        active: snapshot.gameState.currentGuess.length > 0,
+      });
+    }
+
+    function drawNumberTray(options) {
+      const {
+        label,
+        values,
+        color,
+        x,
+        y,
+        width,
+        height,
+        slotSize,
+        active = false,
+      } = options;
       const gap = 8;
-      const slotY = y + 33;
-      const firstSlotX = x + 17;
+      const slotsWidth = slotSize * 3 + gap * 2;
+      const slotY = y + height - slotSize - 7;
+      const firstSlotX = x + (width - slotsWidth) / 2;
 
       ctx.save();
       ctx.fillStyle = "rgba(16,17,20,0.54)";
       roundedRect(x, y, width, height, 8);
       ctx.fill();
-      ctx.strokeStyle = `rgba(242,242,234,${showingCurrent ? 0.24 : 0.16})`;
+      ctx.strokeStyle = active ? color : "rgba(242,242,234,0.16)";
+      ctx.globalAlpha = active ? 0.95 : 1;
       ctx.lineWidth = 1.5;
       ctx.stroke();
+      ctx.globalAlpha = 1;
 
       ctx.fillStyle = color;
       ctx.font = numberFont(12, 900);
@@ -774,14 +911,14 @@
 
         if (value) {
           drawDigitTile(value, slotCenterX, slotCenterY, slotSize, {
-            active: showingCurrent,
-            borderWidth: showingCurrent ? 2 : 1.5,
-            fontSize: 17,
+            active,
+            borderWidth: active ? 2 : 1.5,
+            fontSize: slotSize * 0.56,
             radius: 7,
           });
         } else {
           drawEmptyNumberSlot(slotCenterX, slotCenterY, slotSize, {
-            fontSize: 17,
+            fontSize: slotSize * 0.56,
             radius: 7,
           });
         }
@@ -796,7 +933,7 @@
         : [];
       const width = 140;
       const height = 62;
-      const x = config.WIDTH / 2 - width / 2;
+      const x = config.WIDTH - width - 18;
       const y = 18;
       const slotSize = 28;
       const gap = 8;

@@ -170,7 +170,7 @@
   }
 
   function moveLane(delta) {
-    if (gameEnded || paused) return;
+    if (gameEnded || paused || (wave && wave.dashImpact)) return;
 
     const nextLane = Math.max(0, Math.min(config.LANES - 1, playerLane + delta));
     if (nextLane !== playerLane) {
@@ -186,17 +186,59 @@
     lastDashAt = now;
     audio.ensureAudio();
     wave.handled = true;
-    wave.y = Math.max(wave.y, config.CATCH_Y);
-    shake(9);
-    flash("rgba(107,168,255,0.22)", 0.34);
+    wave.dashImpact = {
+      lane: playerLane,
+      startTime: now,
+      duration: 0.18,
+      startY: wave.y,
+      targetY: config.CATCH_Y,
+      resolved: false,
+    };
+    shake(6);
+    flash("rgba(107,168,255,0.16)", 0.26);
     effects.flashLane(playerLane, "#6ba8ff", 0.42);
     effects.addFloater(
       renderer.laneCenter(playerLane),
-      config.CATCH_Y - 76,
+      config.CATCH_Y - 92,
       "DASH",
       "#6ba8ff",
-      0.92,
+      0.62,
     );
+    audio.playEffect("dash");
+    message = item && item.kind === "digit"
+      ? `${item.value} 대쉬 진입`
+      : "빈칸 대쉬 진입";
+    renderHud();
+  }
+
+  function updateDashImpact(timestamp) {
+    if (!wave || !wave.dashImpact) return;
+
+    const impact = wave.dashImpact;
+    const progress = Math.min(1, (timestamp - impact.startTime) / (impact.duration * 1000));
+    const eased = 1 - Math.pow(1 - progress, 3);
+
+    wave.y = impact.startY + (impact.targetY - impact.startY) * eased;
+
+    if (progress < 1 || impact.resolved) return;
+
+    impact.resolved = true;
+    wave.y = impact.targetY;
+    resolveDashImpact();
+  }
+
+  function resolveDashImpact() {
+    if (!wave || !wave.dashImpact) return;
+
+    const impact = wave.dashImpact;
+    const item = wave.items.find((candidate) => candidate.lane === impact.lane);
+    const color = item && item.kind === "empty" ? "#4ac7a5" : "#f1d35b";
+    const x = renderer.laneCenter(impact.lane);
+
+    shake(12);
+    flash(item && item.kind === "empty" ? "rgba(74,199,165,0.24)" : "rgba(241,211,91,0.24)", 0.36);
+    effects.flashLane(impact.lane, color, 0.58);
+    effects.burst(x, config.CATCH_Y, color, scaledEffectCount(18), 390);
 
     if (!item || item.kind === "empty") {
       boostFromEmpty("dash");
@@ -453,10 +495,14 @@
       effects.updateStars(dt, speed, speedStack);
 
       if (!gameEnded) {
-        wave.y += wave.speed * speed * dt;
-        handleCatch(timestamp);
+        if (wave.dashImpact) {
+          updateDashImpact(timestamp);
+        } else {
+          wave.y += wave.speed * speed * dt;
+          handleCatch(timestamp);
+        }
 
-        if (wave.y > config.HEIGHT + 100) {
+        if (!wave.dashImpact && wave.y > config.HEIGHT + 100) {
           advanceWave();
         }
       }

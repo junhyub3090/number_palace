@@ -39,11 +39,7 @@
     }
 
     function playEffect(kind) {
-      if (kind === "flip") {
-        playTone(330, 0.055, "sawtooth", 0.032, 0);
-        playTone(560, 0.09, "triangle", 0.045, 0.035);
-        playTone(920, 0.12, "triangle", 0.035, 0.09);
-      } else if (kind === "boost") {
+      if (kind === "boost") {
         playTone(380, 0.08, "sawtooth", 0.035, 0);
         playTone(760, 0.16, "triangle", 0.055, 0.055);
       } else if (kind === "collect") {
@@ -54,9 +50,6 @@
         playTone(420, 0.09, "triangle", 0.045, 0);
         playTone(620, 0.09, "triangle", 0.045, 0.08);
         playTone(860, 0.16, "triangle", 0.055, 0.16);
-      } else if (kind === "crash") {
-        playTone(120, 0.16, "sawtooth", 0.075, 0);
-        playTone(72, 0.22, "square", 0.045, 0.04);
       } else if (kind === "clear") {
         playTone(520, 0.1, "triangle", 0.05, 0);
         playTone(720, 0.1, "triangle", 0.05, 0.1);

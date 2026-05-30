@@ -21,10 +21,10 @@
 <body>
   <main class="app-shell">
     <section class="game-surface" aria-label="러닝 숫자야구 게임 화면">
-      <canvas id="gameCanvas" width="640" height="780"></canvas>
+      <canvas id="gameCanvas" width="560" height="1040"></canvas>
       <div class="touch-controls" aria-label="터치 조작">
         <button type="button" data-action="left" aria-label="왼쪽 레인">←</button>
-        <button type="button" data-action="flip" aria-label="공중제비">␣</button>
+        <button type="button" data-action="dash" aria-label="대쉬">▲</button>
         <button type="button" data-action="right" aria-label="오른쪽 레인">→</button>
       </div>
     </section>
@@ -55,6 +55,14 @@
           <div class="stat-card">
             <span>현재속도</span>
             <strong id="speedValue">x1.00</strong>
+          </div>
+          <div class="stat-card">
+            <span>힌트</span>
+            <strong id="hintProgressValue">0/3</strong>
+          </div>
+          <div class="stat-card">
+            <span>아닌 숫자</span>
+            <strong id="excludedDigitsValue">-</strong>
           </div>
         </div>
       </section>
@@ -116,8 +124,8 @@
             </label>
             <label>
               <span>빈칸 가속</span>
-              <input id="qaBoostGain" type="range" min="0" max="80" value="48" />
-              <strong id="qaBoostGainValue">0.48</strong>
+              <input id="qaBoostGain" type="range" min="0" max="80" value="33" />
+              <strong id="qaBoostGainValue">0.33</strong>
             </label>
             <label>
               <span>최대속도</span>

@@ -9,6 +9,8 @@
       scoreValue: documentRef.getElementById("scoreValue"),
       boostValue: documentRef.getElementById("boostValue"),
       speedValue: documentRef.getElementById("speedValue"),
+      hintProgressValue: documentRef.getElementById("hintProgressValue"),
+      excludedDigitsValue: documentRef.getElementById("excludedDigitsValue"),
       devSecretValue: documentRef.getElementById("devSecretValue"),
     };
   }
@@ -27,6 +29,9 @@
     elements.scoreValue.textContent = String(stats.score);
     elements.boostValue.textContent = String(stats.speedStack);
     elements.speedValue.textContent = `x${stats.speedMultiplierValue.toFixed(2)}`;
+    elements.hintProgressValue.textContent = `${stats.hintProgress}/3`;
+    elements.excludedDigitsValue.textContent =
+      stats.excludedHintDigits.length === 0 ? "-" : stats.excludedHintDigits.join(", ");
   }
 
   function renderHud(elements, core, viewState) {

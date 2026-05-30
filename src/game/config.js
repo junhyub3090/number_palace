@@ -1,6 +1,6 @@
 (function attachConfig(global) {
-  const WIDTH = 640;
-  const HEIGHT = 780;
+  const WIDTH = 560;
+  const HEIGHT = 1040;
   const LANES = 4;
 
   global.RunningBaseballConfig = {
@@ -12,14 +12,12 @@
     CATCH_Y: HEIGHT - 154,
     CATCH_WINDOW: 42,
     ITEM_SIZE: 60,
-    FLIP_DURATION: 540,
-    FLIP_COOLDOWN: 610,
     DASH_COOLDOWN: 360,
-    MAX_SPEED_STACK: 3,
+    MAX_SPEED_STACK: 5,
     BASE_WAVE_SPEED: 255,
     DEFAULT_TUNING: {
       baseWaveSpeed: 255,
-      boostGain: 0.48,
+      boostGain: 0.33,
       boostMotion: 0.5,
       digitMax: 7,
       effectIntensity: 0.55,

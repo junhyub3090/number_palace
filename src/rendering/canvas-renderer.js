@@ -172,8 +172,6 @@
         !snapshot.wave.handled &&
         waveY > top - 110 &&
         waveY < top + height + 18;
-      const flipping = snapshot.timestamp < snapshot.flipUntil;
-
       ctx.save();
       for (let lane = 0; lane < config.LANES; lane += 1) {
         const x = lane * config.LANE_WIDTH;
@@ -189,8 +187,8 @@
 
       const activeX = laneCenter(snapshot.playerLane);
       ctx.strokeStyle = zoneColor;
-      ctx.globalAlpha = approaching || flipping ? 0.88 : 0.45;
-      ctx.lineWidth = approaching || flipping ? 4 : 2;
+      ctx.globalAlpha = approaching ? 0.88 : 0.45;
+      ctx.lineWidth = approaching ? 4 : 2;
       roundedRect(
         activeX - config.LANE_WIDTH / 2 + 16,
         top + 4,
@@ -275,19 +273,16 @@
         const y = wave.y;
         const handled = wave.handled && activeLane;
         const pulse = handled ? 0.44 : 1;
-        const danger = wave.crashed && activeLane;
         const boostGlow = Math.min(8, (snapshot.speedStack || 0) * 0.8);
 
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(tilePulse, tilePulse);
         ctx.globalAlpha = pulse;
-        ctx.shadowColor = danger
-          ? "rgba(255,111,97,0.65)"
-          : inCatchZone
-            ? "rgba(241,211,91,0.74)"
-            : "rgba(0,0,0,0.38)";
-        ctx.shadowBlur = danger ? 26 : inCatchZone ? 26 : 14 + boostGlow;
+        ctx.shadowColor = inCatchZone
+          ? "rgba(241,211,91,0.74)"
+          : "rgba(0,0,0,0.38)";
+        ctx.shadowBlur = inCatchZone ? 26 : 14 + boostGlow;
         ctx.shadowOffsetY = 10;
         roundedRect(
           -itemSize / 2,
@@ -296,14 +291,14 @@
           itemSize,
           8,
         );
-        ctx.fillStyle = danger ? "#ff6f61" : "#f2d55b";
+        ctx.fillStyle = "#f2d55b";
         ctx.fill();
         ctx.shadowColor = "transparent";
         ctx.strokeStyle = inCatchZone ? "#f2f2ea" : "rgba(20,20,20,0.35)";
         ctx.lineWidth = inCatchZone ? 5 : 3;
         ctx.stroke();
 
-        ctx.fillStyle = danger ? "#2a0907" : "#17140a";
+        ctx.fillStyle = "#17140a";
         ctx.font = `900 ${Math.round(itemSize * 0.52)}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -333,24 +328,18 @@
       ctx.font = `900 ${Math.max(12, Math.round(itemSize * 0.21))}px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("BOOST", 0, 0);
+      ctx.fillText("GATE", 0, 0);
       ctx.restore();
     }
 
     function drawPlayer(snapshot) {
       const x = laneCenter(snapshot.playerLane);
-      const flipping = snapshot.timestamp < snapshot.flipUntil;
-      const progress = flipping
-        ? 1 - (snapshot.flipUntil - snapshot.timestamp) / config.FLIP_DURATION
-        : 0;
-      const lift = flipping ? Math.sin(progress * Math.PI) * 74 : 0;
-      const spin = flipping ? progress * Math.PI * 2 : 0;
       const stack = snapshot.speedStack || 0;
       const boostWind = boostMotionLevel(snapshot);
       const run = snapshot.timestamp / Math.max(58, 90 - stack * 3.5);
-      const stride = Math.sin(run) * (flipping ? 0.25 : 1);
-      const armStride = Math.sin(run + Math.PI) * (flipping ? 0.2 : 1);
-      const y = config.PLAYER_Y - lift;
+      const stride = Math.sin(run);
+      const armStride = Math.sin(run + Math.PI);
+      const y = config.PLAYER_Y;
       const playerScale = snapshot.tuning.playerScale;
       const scarfFlutter = Math.sin(snapshot.timestamp / 80) * (2 + boostWind * 5);
       const scarfTail = 48 + boostWind * 22;
@@ -358,11 +347,10 @@
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(playerScale, playerScale);
-      ctx.rotate(spin);
 
       ctx.fillStyle = "rgba(0,0,0,0.3)";
       ctx.beginPath();
-      ctx.ellipse(0, 56 + lift * 0.25, 39, 11, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 56, 39, 11, 0, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.save();
@@ -415,9 +403,9 @@
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(-17, 12);
-      ctx.lineTo(flipping ? -39 : -31 + armStride * 10, 33 - armStride * 5);
+      ctx.lineTo(-31 + armStride * 10, 33 - armStride * 5);
       ctx.moveTo(17, 13);
-      ctx.lineTo(flipping ? 38 : 31 - armStride * 10, 34 + armStride * 5);
+      ctx.lineTo(31 - armStride * 10, 34 + armStride * 5);
       ctx.moveTo(-11, 43);
       ctx.lineTo(-24 + stride * 13, 68);
       ctx.moveTo(11, 43);
@@ -432,7 +420,7 @@
       ctx.ellipse(25 - stride * 13, 70, 14, 6, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = flipping ? "#4ac7a5" : "#ff6f61";
+      ctx.fillStyle = "#4ac7a5";
       ctx.beginPath();
       ctx.moveTo(22, -2);
       ctx.lineTo(48, 12);
@@ -521,10 +509,10 @@
           : [];
       const label = showingCurrent || !lastGuess ? "PICK" : "HIT";
       const color = showingCurrent || !lastGuess ? "#f1d35b" : "#4ac7a5";
-      const x = 332;
-      const y = 18;
       const width = 140;
       const height = 70;
+      const x = config.WIDTH / 2 - width / 2;
+      const y = 18;
       const slotSize = 30;
       const gap = 8;
       const slotY = y + 33;

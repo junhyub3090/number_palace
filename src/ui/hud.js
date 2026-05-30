@@ -2,7 +2,6 @@
   function getHudElements(documentRef) {
     return {
       guessSlots: documentRef.getElementById("guessSlots"),
-      excludedDigits: documentRef.getElementById("excludedDigits"),
       historyList: documentRef.getElementById("historyList"),
       messageBox: documentRef.getElementById("messageBox"),
       remainingTimeValue: documentRef.getElementById("remainingTimeValue"),
@@ -32,7 +31,6 @@
   function renderHud(elements, core, viewState) {
     renderLiveStats(elements, viewState);
     renderGuessSlots(elements.guessSlots, viewState.gameState.currentGuess);
-    renderExcludedDigits(elements.excludedDigits, viewState.nextExcluded);
     renderHistory(elements.historyList, core, viewState.gameState.history);
     elements.messageBox.textContent = viewState.message;
   }
@@ -45,17 +43,6 @@
       slot.className = `slot${currentGuess[i] ? "" : " empty"}`;
       slot.textContent = currentGuess[i] || ".";
       container.appendChild(slot);
-    }
-  }
-
-  function renderExcludedDigits(container, nextExcluded) {
-    container.innerHTML = "";
-
-    for (let i = 0; i < 3; i += 1) {
-      const chip = document.createElement("div");
-      chip.className = `excluded-chip${nextExcluded[i] ? "" : " empty"}`;
-      chip.textContent = nextExcluded[i] || ".";
-      container.appendChild(chip);
     }
   }
 

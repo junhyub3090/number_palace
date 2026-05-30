@@ -1,12 +1,11 @@
 <!doctype html>
 <html lang="ko">
-
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>러닝 숫자야구</title>
-  <link rel="stylesheet" href="src/ui/styles.css" />
-  <script type="importmap">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>러닝 숫자야구</title>
+    <link rel="stylesheet" href="src/ui/styles.css" />
+    <script type="importmap">
       {
         "imports": {
           "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
@@ -14,122 +13,115 @@
         }
       }
     </script>
-</head>
-
-<body>
-  <main class="app-shell">
-    <section class="game-surface" aria-label="러닝 숫자야구 게임 화면">
-      <canvas id="gameCanvas" width="640" height="720"></canvas>
-      <div class="touch-controls" aria-label="터치 조작">
-        <button type="button" data-action="left" aria-label="왼쪽 레인">←</button>
-        <button type="button" data-action="flip" aria-label="공중제비">␣</button>
-        <button type="button" data-action="right" aria-label="오른쪽 레인">→</button>
-      </div>
-    </section>
-
-    <aside class="side-panel">
-      <div class="panel-top">
-        <div>
-          <p class="kicker">Running Baseball</p>
-          <h1>러닝 숫자야구</h1>
-        </div>
-        <div class="panel-actions">
-          <button id="pauseButton" type="button">정지</button>
-          <button id="restartButton" type="button">새 게임</button>
-        </div>
-      </div>
-
-      <section class="status-block">
-        <h2>플레이 상태</h2>
-        <div class="stat-grid compact">
-          <div class="stat-card">
-            <span>남은시간</span>
-            <strong id="remainingTimeValue">01:30.0</strong>
-          </div>
-          <div class="stat-card">
-            <span>경과</span>
-            <strong id="timeValue">00:00.0</strong>
-          </div>
-          <div class="stat-card">
-            <span>부스트</span>
-            <strong id="boostValue">0</strong>
-          </div>
-          <div class="stat-card">
-            <span>클리어</span>
-            <strong id="finalTimeValue">-</strong>
-          </div>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-surface" aria-label="러닝 숫자야구 게임 화면">
+        <canvas id="gameCanvas" width="640" height="720"></canvas>
+        <div class="touch-controls" aria-label="터치 조작">
+          <button type="button" data-action="left" aria-label="왼쪽 레인">←</button>
+          <button type="button" data-action="flip" aria-label="공중제비">␣</button>
+          <button type="button" data-action="right" aria-label="오른쪽 레인">→</button>
         </div>
       </section>
 
-      <section class="status-block">
-        <h2>현재 추측</h2>
-        <div id="guessSlots" class="guess-slots" aria-live="polite"></div>
-      </section>
-
-      <section class="status-block">
-        <h2>다음 제외</h2>
-        <div id="excludedDigits" class="excluded-digits" aria-live="polite"></div>
-      </section>
-
-      <section class="status-block">
-        <h2>결과 (S 순)</h2>
-        <ol id="historyList" class="history-list" aria-live="polite"></ol>
-      </section>
-
-      <details class="qa-panel" open>
-        <summary>QA 조절</summary>
-        <div class="qa-grid">
-          <label>
-            <span>낙하속도</span>
-            <input id="qaBaseSpeed" type="range" min="140" max="320" value="220" />
-            <strong id="qaBaseSpeedValue">220</strong>
-          </label>
-          <label>
-            <span>빈칸 가속</span>
-            <input id="qaBoostGain" type="range" min="0" max="20" value="8" />
-            <strong id="qaBoostGainValue">0.08</strong>
-          </label>
-          <label>
-            <span>숫자 크기</span>
-            <input id="qaItemSize" type="range" min="46" max="76" value="60" />
-            <strong id="qaItemSizeValue">60</strong>
-          </label>
-          <label>
-            <span>캐릭터</span>
-            <input id="qaPlayerScale" type="range" min="75" max="110" value="90" />
-            <strong id="qaPlayerScaleValue">0.90</strong>
-          </label>
-          <label>
-            <span>연출 강도</span>
-            <input id="qaEffectIntensity" type="range" min="0" max="100" value="55" />
-            <strong id="qaEffectIntensityValue">0.55</strong>
-          </label>
-          <label>
-            <span>흔들림</span>
-            <input id="qaShakeIntensity" type="range" min="0" max="100" value="45" />
-            <strong id="qaShakeIntensityValue">0.45</strong>
-          </label>
-          <label>
-            <span>제한시간</span>
-            <input id="qaTimeLimit" type="range" min="30" max="180" value="90" />
-            <strong id="qaTimeLimitValue">90s</strong>
-          </label>
+      <aside class="side-panel">
+        <div class="panel-top">
+          <div>
+            <p class="kicker">Running Baseball</p>
+            <h1>러닝 숫자야구</h1>
+          </div>
+          <div class="panel-actions">
+            <button id="pauseButton" type="button">정지</button>
+            <button id="restartButton" type="button">새 게임</button>
+          </div>
         </div>
-      </details>
 
-      <div id="messageBox" class="message-box" aria-live="polite"></div>
-    </aside>
-  </main>
+        <section class="status-block">
+          <h2>플레이 상태</h2>
+          <div class="stat-grid compact">
+            <div class="stat-card">
+              <span>남은시간</span>
+              <strong id="remainingTimeValue">01:30.0</strong>
+            </div>
+            <div class="stat-card">
+              <span>경과</span>
+              <strong id="timeValue">00:00.0</strong>
+            </div>
+            <div class="stat-card">
+              <span>부스트</span>
+              <strong id="boostValue">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>클리어</span>
+              <strong id="finalTimeValue">-</strong>
+            </div>
+          </div>
+        </section>
 
-  <script type="module" src="src/firebase/firebaseApi.js"></script>
-  <script defer src="src/core/game-core.js"></script>
-  <script defer src="src/game/config.js"></script>
-  <script defer src="src/game/audio.js"></script>
-  <script defer src="src/game/effects.js"></script>
-  <script defer src="src/ui/hud.js"></script>
-  <script defer src="src/ui/dev-controls.js"></script>
-  <script defer src="src/rendering/canvas-renderer.js"></script>
-  <script defer src="src/game/game.js"></script>
-</body>
+        <section class="status-block">
+          <h2>현재 추측</h2>
+          <div id="guessSlots" class="guess-slots" aria-live="polite"></div>
+        </section>
 
+        <section class="status-block">
+          <h2>결과 (S 순)</h2>
+          <ol id="historyList" class="history-list" aria-live="polite"></ol>
+        </section>
+
+        <details class="qa-panel" open>
+          <summary>QA 조절</summary>
+          <div class="qa-grid">
+            <label>
+              <span>낙하속도</span>
+              <input id="qaBaseSpeed" type="range" min="140" max="320" value="220" />
+              <strong id="qaBaseSpeedValue">220</strong>
+            </label>
+            <label>
+              <span>빈칸 가속</span>
+              <input id="qaBoostGain" type="range" min="0" max="20" value="8" />
+              <strong id="qaBoostGainValue">0.08</strong>
+            </label>
+            <label>
+              <span>숫자 크기</span>
+              <input id="qaItemSize" type="range" min="46" max="76" value="60" />
+              <strong id="qaItemSizeValue">60</strong>
+            </label>
+            <label>
+              <span>캐릭터</span>
+              <input id="qaPlayerScale" type="range" min="75" max="110" value="90" />
+              <strong id="qaPlayerScaleValue">0.90</strong>
+            </label>
+            <label>
+              <span>연출 강도</span>
+              <input id="qaEffectIntensity" type="range" min="0" max="100" value="55" />
+              <strong id="qaEffectIntensityValue">0.55</strong>
+            </label>
+            <label>
+              <span>흔들림</span>
+              <input id="qaShakeIntensity" type="range" min="0" max="100" value="45" />
+              <strong id="qaShakeIntensityValue">0.45</strong>
+            </label>
+            <label>
+              <span>제한시간</span>
+              <input id="qaTimeLimit" type="range" min="30" max="180" value="90" />
+              <strong id="qaTimeLimitValue">90s</strong>
+            </label>
+          </div>
+        </details>
+
+        <div id="messageBox" class="message-box" aria-live="polite"></div>
+      </aside>
+    </main>
+
+    <script type="module" src="src/firebase/firebaseApi.js"></script>
+    <script defer src="src/core/game-core.js"></script>
+    <script defer src="src/game/config.js"></script>
+    <script defer src="src/game/audio.js"></script>
+    <script defer src="src/game/effects.js"></script>
+    <script defer src="src/ui/hud.js"></script>
+    <script defer src="src/ui/dev-controls.js"></script>
+    <script defer src="src/rendering/canvas-renderer.js"></script>
+    <script defer src="src/game/game.js"></script>
+  </body>
 </html>

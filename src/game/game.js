@@ -392,11 +392,11 @@
   }
 
   window.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowLeft") {
+    if (event.key === "ArrowLeft" || event.code === "KeyA") {
       event.preventDefault();
       audio.ensureAudio();
       moveLane(-1);
-    } else if (event.key === "ArrowRight") {
+    } else if (event.key === "ArrowRight" || event.code === "KeyD") {
       event.preventDefault();
       audio.ensureAudio();
       moveLane(1);

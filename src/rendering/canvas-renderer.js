@@ -481,6 +481,19 @@
         );
         const tilePulse = nearCatch ? 1 + Math.sin(snapshot.timestamp / 58) * 0.035 : 1;
         const itemY = wave.y + impactYOffset;
+        const itemX = laneCenter(item.lane);
+
+        if (impact) {
+          drawDashMeteorTrail(
+            itemX,
+            itemY,
+            itemSize,
+            item.kind === "empty" ? "#4ac7a5" : digitColor(item.value),
+            impactActive,
+            impactHit ? afterImpactProgress : preImpactProgress,
+            impactAlpha,
+          );
+        }
 
         if (item.kind === "empty") {
           drawEmptyGate(
@@ -495,7 +508,7 @@
           return;
         }
 
-        const x = laneCenter(item.lane);
+        const x = itemX;
         const y = itemY;
         const handled = wave.handled && activeLane && !impact;
         const pulse = handled ? 0.44 : 1;
@@ -516,6 +529,45 @@
         });
         ctx.restore();
       });
+    }
+
+    function drawDashMeteorTrail(x, y, itemSize, color, active, progress, alpha) {
+      const length = itemSize * (active ? 3.6 : 2.4);
+      const width = itemSize * (active ? 0.55 : 0.36);
+      const fade = Math.max(0, Math.min(1, alpha));
+      const sparkleAlpha = active ? 0.44 : 0.22;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+
+      const trail = ctx.createLinearGradient(x, y - length, x, y + itemSize * 0.25);
+      trail.addColorStop(0, "rgba(255,255,255,0)");
+      trail.addColorStop(0.24, `${color}00`);
+      trail.addColorStop(0.72, color);
+      trail.addColorStop(1, active ? "rgba(242,242,234,0.82)" : "rgba(242,242,234,0.38)");
+
+      ctx.globalAlpha = (active ? 0.5 : 0.24) * fade;
+      ctx.fillStyle = trail;
+      ctx.beginPath();
+      ctx.moveTo(x - width * 0.18, y + itemSize * 0.18);
+      ctx.lineTo(x - width, y - length * (0.78 + progress * 0.16));
+      ctx.lineTo(x, y - length);
+      ctx.lineTo(x + width, y - length * (0.78 + progress * 0.16));
+      ctx.lineTo(x + width * 0.18, y + itemSize * 0.18);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.globalAlpha = sparkleAlpha * fade;
+      ctx.strokeStyle = active ? "#f2f2ea" : color;
+      ctx.lineWidth = active ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(x - width * 0.52, y - length * 0.18);
+      ctx.lineTo(x - width * 0.18, y - length * 0.52);
+      ctx.moveTo(x + width * 0.54, y - length * 0.3);
+      ctx.lineTo(x + width * 0.2, y - length * 0.66);
+      ctx.stroke();
+
+      ctx.restore();
     }
 
     function drawDashImpactCue(wave, impact, progress, itemSize) {

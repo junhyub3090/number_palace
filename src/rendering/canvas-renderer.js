@@ -1,6 +1,19 @@
 (function attachCanvasRenderer(global) {
   function createCanvasRenderer(canvas, config, formatTime) {
     const ctx = canvas.getContext("2d");
+    const NUMBER_FONT_FAMILY =
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const DIGIT_TILE_COLORS = [
+      "#d6bb57",
+      "#68b89b",
+      "#719bd6",
+      "#d7848b",
+      "#a88bd6",
+      "#70b8c8",
+      "#d39a58",
+      "#94bc6a",
+      "#d482bd",
+    ];
     let viewportWidth = config.WIDTH;
     let viewportHeight = config.HEIGHT;
     let stageX = 0;
@@ -32,6 +45,81 @@
       ctx.arcTo(x, y + height, x, y, r);
       ctx.arcTo(x, y, x + width, y, r);
       ctx.closePath();
+    }
+
+    function digitColor(value) {
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue)) return DIGIT_TILE_COLORS[0];
+
+      return DIGIT_TILE_COLORS[
+        Math.abs(Math.round(numericValue) - 1) % DIGIT_TILE_COLORS.length
+      ];
+    }
+
+    function numberFont(size, weight = 950) {
+      return `${weight} ${Math.round(size)}px ${NUMBER_FONT_FAMILY}`;
+    }
+
+    function drawNumberText(value, x, y, size, color) {
+      ctx.fillStyle = color;
+      ctx.font = numberFont(size);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(value), x, y);
+    }
+
+    function drawDigitTile(value, x, y, size, options = {}) {
+      const radius = options.radius || Math.max(6, Math.round(size * 0.18));
+      const active = Boolean(options.active);
+      const color = digitColor(value);
+      const borderWidth =
+        options.borderWidth || (active ? Math.max(3, size * 0.09) : Math.max(1.5, size * 0.052));
+
+      ctx.save();
+      ctx.translate(x, y);
+      roundedRect(-size / 2, -size / 2, size, size, radius);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      ctx.shadowColor = "transparent";
+      ctx.fillStyle = active ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.15)";
+      roundedRect(
+        -size / 2 + size * 0.12,
+        -size / 2 + size * 0.1,
+        size * 0.76,
+        size * 0.22,
+        Math.max(4, radius * 0.6),
+      );
+      ctx.fill();
+
+      ctx.strokeStyle = active ? "#f2f2ea" : "rgba(16,17,20,0.46)";
+      ctx.lineWidth = borderWidth;
+      roundedRect(-size / 2, -size / 2, size, size, radius);
+      ctx.stroke();
+
+      drawNumberText(
+        value,
+        0,
+        size * 0.035,
+        options.fontSize || size * 0.54,
+        options.textColor || "#17140a",
+      );
+      ctx.restore();
+    }
+
+    function drawEmptyNumberSlot(x, y, size, options = {}) {
+      const radius = options.radius || Math.max(6, Math.round(size * 0.18));
+
+      ctx.save();
+      ctx.translate(x, y);
+      roundedRect(-size / 2, -size / 2, size, size, radius);
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = options.borderWidth || 1;
+      ctx.stroke();
+      drawNumberText(".", 0, size * 0.02, options.fontSize || size * 0.56, "rgba(242,242,234,0.3)");
+      ctx.restore();
     }
 
     function seededUnit(seed) {
@@ -357,25 +445,10 @@
           : "rgba(0,0,0,0.38)";
         ctx.shadowBlur = inCatchZone ? 26 : 14 + boostGlow;
         ctx.shadowOffsetY = 10;
-        roundedRect(
-          -itemSize / 2,
-          -itemSize / 2,
-          itemSize,
-          itemSize,
-          8,
-        );
-        ctx.fillStyle = "#f2d55b";
-        ctx.fill();
-        ctx.shadowColor = "transparent";
-        ctx.strokeStyle = inCatchZone ? "#f2f2ea" : "rgba(20,20,20,0.35)";
-        ctx.lineWidth = inCatchZone ? 5 : 3;
-        ctx.stroke();
-
-        ctx.fillStyle = "#17140a";
-        ctx.font = `900 ${Math.round(itemSize * 0.52)}px Inter, system-ui, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(item.value), 0, 2);
+        drawDigitTile(item.value, 0, 0, itemSize, {
+          active: inCatchZone,
+          radius: 8,
+        });
         ctx.restore();
       });
     }
@@ -398,7 +471,7 @@
       ctx.fillStyle = inCatchZone ? "rgba(74,199,165,0.16)" : "rgba(74,199,165,0.08)";
       ctx.fill();
       ctx.fillStyle = "#4ac7a5";
-      ctx.font = `900 ${Math.max(12, Math.round(itemSize * 0.21))}px Inter, system-ui, sans-serif`;
+      ctx.font = numberFont(Math.max(12, itemSize * 0.21), 900);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("GATE", 0, 0);
@@ -502,7 +575,7 @@
         ctx.fillStyle = floater.color;
         ctx.strokeStyle = "rgba(0,0,0,0.45)";
         ctx.lineWidth = 6;
-        ctx.font = "950 24px Inter, system-ui, sans-serif";
+        ctx.font = numberFont(24);
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeText(floater.text, 0, 0);
@@ -512,6 +585,7 @@
     }
 
     function drawOverlay(snapshot) {
+      drawTopStats(snapshot);
       drawPickTray(snapshot);
       drawNextPreview(snapshot);
 
@@ -524,7 +598,7 @@
         ctx.fillStyle = "#6ba8ff";
         ctx.strokeStyle = "rgba(0,0,0,0.55)";
         ctx.lineWidth = 10;
-        ctx.font = "950 52px Inter, system-ui, sans-serif";
+        ctx.font = numberFont(52);
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeText(snapshot.lastGuessPulse.text, 0, 0);
@@ -540,7 +614,7 @@
           snapshot.endReason === "time" ? "#f1d35b" : "#ff6f61",
         );
         ctx.fillStyle = "#4ac7a5";
-        ctx.font = "850 24px Inter, system-ui, sans-serif";
+        ctx.font = numberFont(24, 850);
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(`플레이 시간 ${formatTime(snapshot.finalTimeMs)}`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
@@ -551,6 +625,41 @@
         drawEndOverlay("일시정지", "P 또는 버튼으로 재개", "#6ba8ff");
         return;
       }
+    }
+
+    function drawTopStats(snapshot) {
+      const x = 18;
+      const y = 18;
+      const width = 164;
+      const height = 62;
+      const remaining = formatTime(snapshot.remainingMs);
+
+      ctx.save();
+      ctx.fillStyle = "rgba(16,17,20,0.56)";
+      roundedRect(x, y, width, height, 8);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(242,242,234,0.16)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = "#aeb3aa";
+      ctx.font = numberFont(10, 900);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("TIME", x + 14, y + 18);
+
+      ctx.fillStyle = "#f2f2ea";
+      ctx.font = numberFont(18);
+      ctx.fillText(remaining, x + 58, y + 18);
+
+      ctx.fillStyle = "#aeb3aa";
+      ctx.font = numberFont(10, 900);
+      ctx.fillText("SCORE", x + 14, y + 43);
+
+      ctx.fillStyle = "#f1d35b";
+      ctx.font = numberFont(19);
+      ctx.fillText(String(snapshot.score), x + 70, y + 43);
+      ctx.restore();
     }
 
     function drawPickTray(snapshot) {
@@ -567,7 +676,7 @@
       const width = 140;
       const height = 70;
       const x = config.WIDTH / 2 - width / 2;
-      const y = 18;
+      const y = 88;
       const slotSize = 30;
       const gap = 8;
       const slotY = y + 33;
@@ -582,7 +691,7 @@
       ctx.stroke();
 
       ctx.fillStyle = color;
-      ctx.font = "900 12px Inter, system-ui, sans-serif";
+      ctx.font = numberFont(12, 900);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText(label, x + 14, y + 17);
@@ -590,18 +699,22 @@
       for (let index = 0; index < 3; index += 1) {
         const value = values[index];
         const slotX = firstSlotX + index * (slotSize + gap);
-        ctx.fillStyle = value ? "rgba(242,242,234,0.12)" : "rgba(255,255,255,0.045)";
-        roundedRect(slotX, slotY, slotSize, slotSize, 7);
-        ctx.fill();
-        ctx.strokeStyle = value ? color : "rgba(255,255,255,0.1)";
-        ctx.lineWidth = value ? 2 : 1;
-        ctx.stroke();
+        const slotCenterX = slotX + slotSize / 2;
+        const slotCenterY = slotY + slotSize / 2;
 
-        ctx.fillStyle = value ? color : "rgba(242,242,234,0.28)";
-        ctx.font = "950 18px Inter, system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(value ? String(value) : ".", slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+        if (value) {
+          drawDigitTile(value, slotCenterX, slotCenterY, slotSize, {
+            active: showingCurrent,
+            borderWidth: showingCurrent ? 2 : 1.5,
+            fontSize: 17,
+            radius: 7,
+          });
+        } else {
+          drawEmptyNumberSlot(slotCenterX, slotCenterY, slotSize, {
+            fontSize: 17,
+            radius: 7,
+          });
+        }
       }
 
       ctx.restore();
@@ -614,7 +727,7 @@
       const width = 140;
       const height = 62;
       const x = config.WIDTH / 2 - width / 2;
-      const y = 96;
+      const y = 18;
       const slotSize = 28;
       const gap = 8;
       const slotY = y + 27;
@@ -629,7 +742,7 @@
       ctx.stroke();
 
       ctx.fillStyle = "#9fc5ff";
-      ctx.font = "900 11px Inter, system-ui, sans-serif";
+      ctx.font = numberFont(11, 900);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText("NEXT", x + 14, y + 15);
@@ -637,18 +750,21 @@
       for (let index = 0; index < 3; index += 1) {
         const value = values[index];
         const slotX = firstSlotX + index * (slotSize + gap);
-        ctx.fillStyle = value ? "rgba(107,168,255,0.14)" : "rgba(255,255,255,0.04)";
-        roundedRect(slotX, slotY, slotSize, slotSize, 7);
-        ctx.fill();
-        ctx.strokeStyle = value ? "rgba(107,168,255,0.62)" : "rgba(255,255,255,0.1)";
-        ctx.lineWidth = value ? 2 : 1;
-        ctx.stroke();
+        const slotCenterX = slotX + slotSize / 2;
+        const slotCenterY = slotY + slotSize / 2;
 
-        ctx.fillStyle = value ? "#f2f2ea" : "rgba(242,242,234,0.28)";
-        ctx.font = "950 17px Inter, system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(value ? String(value) : ".", slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+        if (value) {
+          drawDigitTile(value, slotCenterX, slotCenterY, slotSize, {
+            borderWidth: 1.5,
+            fontSize: 16,
+            radius: 7,
+          });
+        } else {
+          drawEmptyNumberSlot(slotCenterX, slotCenterY, slotSize, {
+            fontSize: 16,
+            radius: 7,
+          });
+        }
       }
 
       ctx.restore();
@@ -691,13 +807,13 @@
       ctx.stroke();
 
       ctx.fillStyle = "#aef4dc";
-      ctx.font = "900 12px Inter, system-ui, sans-serif";
+      ctx.font = numberFont(12, 900);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText("BOOST", x + 14, y + 20);
 
       ctx.fillStyle = "#f2f2ea";
-      ctx.font = "950 25px Inter, system-ui, sans-serif";
+      ctx.font = numberFont(25);
       ctx.textAlign = "right";
       ctx.fillText(`${stack}`, x + width - 14, y + 23);
 
@@ -714,12 +830,12 @@
       ctx.fillStyle = "rgba(16,17,20,0.78)";
       ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
       ctx.fillStyle = color;
-      ctx.font = "950 58px Inter, system-ui, sans-serif";
+      ctx.font = numberFont(58);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(title, config.WIDTH / 2, config.HEIGHT / 2 - 56);
       ctx.fillStyle = "#f2f2ea";
-      ctx.font = "900 34px Inter, system-ui, sans-serif";
+      ctx.font = numberFont(34, 900);
       ctx.fillText(subtitle, config.WIDTH / 2, config.HEIGHT / 2 + 6);
     }
 

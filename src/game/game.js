@@ -175,13 +175,6 @@
     const nextLane = Math.max(0, Math.min(config.LANES - 1, playerLane + delta));
     if (nextLane !== playerLane) {
       effects.flashLane(nextLane, "#6ba8ff", 0.28);
-      effects.addFloater(
-        renderer.laneCenter(nextLane),
-        config.PLAYER_Y - 92,
-        delta < 0 ? "LEFT" : "RIGHT",
-        "#9fc5ff",
-        0.7,
-      );
     }
     playerLane = nextLane;
   }

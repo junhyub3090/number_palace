@@ -13,6 +13,9 @@
   --danger: #ff6f61;
   --blue: #6ba8ff;
   --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  --number-font:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 * {
@@ -274,8 +277,11 @@ h2 {
 
 .stat-card strong {
   color: var(--text);
+  font-family: var(--number-font);
   font-size: 17px;
   font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
   line-height: 1;
 }
 
@@ -290,16 +296,36 @@ h2 {
 }
 
 .next-digits span {
+  --digit-color: var(--accent);
   width: 24px;
   height: 26px;
-  border: 1px solid rgba(241, 211, 91, 0.42);
+  border: 1px solid rgba(16, 17, 20, 0.46);
   border-radius: 6px;
-  background: rgba(241, 211, 91, 0.12);
-  color: var(--accent);
+  background: var(--digit-color);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--digit-color) 90%, white 10%),
+    var(--digit-color)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 2px 0 rgba(0, 0, 0, 0.22);
+  color: #17140a;
   display: grid;
   place-items: center;
+  font-family: var(--number-font);
   font-size: 15px;
   font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.next-digits span.is-empty {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
+  color: rgba(242, 242, 234, 0.3);
 }
 
 .guess-slots {
@@ -309,18 +335,34 @@ h2 {
 }
 
 .slot {
+  --digit-color: var(--accent);
   min-height: 46px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(16, 17, 20, 0.46);
   border-radius: 8px;
-  background: var(--panel);
+  background: var(--digit-color);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--digit-color) 90%, white 10%),
+    var(--digit-color)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 3px 0 rgba(0, 0, 0, 0.24);
   display: grid;
   place-items: center;
-  color: var(--text);
+  color: #17140a;
+  font-family: var(--number-font);
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .slot.empty {
+  border-color: var(--line);
+  background: var(--panel);
+  box-shadow: none;
   color: rgba(242, 242, 234, 0.3);
 }
 
@@ -353,20 +395,45 @@ h2 {
 }
 
 .history-guess span {
+  --digit-color: var(--accent);
   width: 24px;
   height: 28px;
+  border: 1px solid rgba(16, 17, 20, 0.46);
   border-radius: 6px;
-  background: #333a44;
+  background: var(--digit-color);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--digit-color) 90%, white 10%),
+    var(--digit-color)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 2px 0 rgba(0, 0, 0, 0.2);
+  color: #17140a;
   display: grid;
   place-items: center;
+  font-family: var(--number-font);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.history-guess span.is-empty {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
+  color: rgba(242, 242, 234, 0.3);
 }
 
 .history-score {
   color: var(--muted);
+  font-family: var(--number-font);
   font-size: 14px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
   text-align: right;
 }
 
@@ -419,8 +486,10 @@ h2 {
 
 .dev-secret strong {
   color: var(--accent);
+  font-family: var(--number-font);
   font-size: 20px;
   font-weight: 950;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 

@@ -10,7 +10,7 @@ import {
   signInWithCredential,
   deleteUser
 } from "firebase/auth";
-import { doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, deleteDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -138,6 +138,9 @@ const FirebaseApi = {
         const guestData = guestDocSnap.data();
         const realDocRef = doc(db, "users", realUser.uid);
         
+        // 게스트 데이터를 병합할 때 displayName도 실제 유저 정보로 갱신
+        guestData.displayName = realUser.displayName || realUser.email?.split('@')[0] || "플레이어";
+        
         // 기존 실제 계정 데이터에 게스트 데이터를 덮어씌움 (병합)
         await setDoc(realDocRef, guestData, { merge: true });
         
@@ -170,16 +173,43 @@ const FirebaseApi = {
   // 8. 최단 클리어 시간 업데이트
   updateBestClearTime: async (timeMs) => {
     try {
+      const user = auth.currentUser;
+      if (!user) return false;
+      const displayName = user.isAnonymous ? "게스트" : (user.displayName || user.email?.split('@')[0] || "플레이어");
+
       const currentData = await FirebaseApi.getUserData();
       const currentBest = currentData?.bestClearTime;
       if (!currentBest || timeMs < currentBest) {
-        await FirebaseApi.saveUserData('bestClearTime', timeMs);
+        const docRef = doc(db, "users", user.uid);
+        await setDoc(docRef, { bestClearTime: timeMs, displayName: displayName }, { merge: true });
+        console.log(`[Firebase Firestore] 최단 클리어 시간 갱신: ${timeMs}`);
         return true;
       }
       return false;
     } catch (error) {
       console.error('[Firebase Firestore] 최단 클리어 시간 저장 실패:', error);
       return false;
+    }
+  },
+
+  // 9. 리더보드 데이터 가져오기
+  getLeaderboard: async (limitCount = 10) => {
+    try {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, orderBy("bestClearTime", "asc"), limit(limitCount));
+      const querySnapshot = await getDocs(q);
+      
+      const leaderboard = [];
+      querySnapshot.forEach((doc) => {
+        leaderboard.push({
+          uid: doc.id,
+          ...doc.data()
+        });
+      });
+      return leaderboard;
+    } catch (error) {
+      console.error('[Firebase Firestore] 리더보드 데이터 가져오기 실패:', error);
+      return [];
     }
   }
 };

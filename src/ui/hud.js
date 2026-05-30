@@ -6,6 +6,7 @@
       messageBox: documentRef.getElementById("messageBox"),
       timeValue: documentRef.getElementById("timeValue"),
       boostValue: documentRef.getElementById("boostValue"),
+      speedValue: documentRef.getElementById("speedValue"),
       finalTimeValue: documentRef.getElementById("finalTimeValue"),
     };
   }
@@ -21,6 +22,7 @@
   function renderLiveStats(elements, stats) {
     elements.timeValue.textContent = formatTime(stats.elapsedMs);
     elements.boostValue.textContent = String(stats.speedStack);
+    elements.speedValue.textContent = `x${stats.speedMultiplierValue.toFixed(2)}`;
     elements.finalTimeValue.textContent =
       stats.finalTimeMs === null ? "-" : formatTime(stats.finalTimeMs);
   }

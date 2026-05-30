@@ -27,7 +27,7 @@
       ctx.save();
       ctx.translate(shakeX, shakeY);
       drawTrack(snapshot);
-      drawWave(snapshot.wave, snapshot.playerLane, snapshot.tuning.itemSize, snapshot.speedStack);
+      drawWave(snapshot);
       drawPlayer(snapshot);
       drawParticles(snapshot.effects.particles);
       drawFloaters(snapshot.effects.floaters);
@@ -93,6 +93,7 @@
       }
 
       drawBoostMotion(snapshot);
+      drawCatchZone(snapshot);
 
       ctx.strokeStyle = "rgba(241,211,91,0.76)";
       ctx.lineWidth = 3;
@@ -102,6 +103,66 @@
       ctx.lineTo(config.WIDTH - 18, config.CATCH_Y);
       ctx.stroke();
       ctx.setLineDash([]);
+    }
+
+    function drawCatchZone(snapshot) {
+      const top = config.CATCH_Y - config.CATCH_WINDOW;
+      const height = config.CATCH_WINDOW * 2;
+      const activeItem = snapshot.wave
+        ? snapshot.wave.items.find((item) => item.lane === snapshot.playerLane)
+        : null;
+      const zoneColor = activeItem && activeItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
+      const waveY = snapshot.wave ? snapshot.wave.y : -Infinity;
+      const approaching =
+        snapshot.wave &&
+        !snapshot.wave.handled &&
+        waveY > top - 110 &&
+        waveY < top + height + 18;
+      const flipping = snapshot.timestamp < snapshot.flipUntil;
+
+      ctx.save();
+      for (let lane = 0; lane < config.LANES; lane += 1) {
+        const x = lane * config.LANE_WIDTH;
+        const activeLane = lane === snapshot.playerLane;
+        ctx.fillStyle = activeLane
+          ? `rgba(241,211,91,${approaching ? 0.18 : 0.09})`
+          : "rgba(255,255,255,0.025)";
+        if (activeLane && activeItem && activeItem.kind === "empty") {
+          ctx.fillStyle = `rgba(74,199,165,${approaching ? 0.17 : 0.08})`;
+        }
+        ctx.fillRect(x + 10, top, config.LANE_WIDTH - 20, height);
+      }
+
+      const activeX = laneCenter(snapshot.playerLane);
+      ctx.strokeStyle = zoneColor;
+      ctx.globalAlpha = approaching || flipping ? 0.88 : 0.45;
+      ctx.lineWidth = approaching || flipping ? 4 : 2;
+      roundedRect(
+        activeX - config.LANE_WIDTH / 2 + 16,
+        top + 4,
+        config.LANE_WIDTH - 32,
+        height - 8,
+        8,
+      );
+      ctx.stroke();
+
+      if (flipping) {
+        const progress = 1 - (snapshot.flipUntil - snapshot.timestamp) / config.FLIP_DURATION;
+        const pulse = Math.sin(progress * Math.PI);
+        ctx.globalAlpha = 0.3 + pulse * 0.38;
+        ctx.strokeStyle = "#4ac7a5";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(activeX, config.CATCH_Y, config.CATCH_WINDOW + 8 + pulse * 12, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.26 + pulse * 0.28;
+        ctx.beginPath();
+        ctx.arc(activeX, config.CATCH_Y, config.CATCH_WINDOW * 0.52 + pulse * 8, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
     }
 
     function boostMotionLevel(snapshot) {
@@ -145,30 +206,54 @@
       ctx.restore();
     }
 
-    function drawWave(wave, playerLane, itemSize, speedStack) {
+    function drawWave(snapshot) {
+      const wave = snapshot.wave;
       if (!wave) return;
 
+      const itemSize = snapshot.tuning.itemSize;
+      const top = config.CATCH_Y - config.CATCH_WINDOW;
+      const bottom = config.CATCH_Y + config.CATCH_WINDOW;
+
       wave.items.forEach((item) => {
+        const activeLane = item.lane === snapshot.playerLane;
+        const nearCatch =
+          activeLane &&
+          !wave.handled &&
+          wave.y > top - 78 &&
+          wave.y < bottom + 12;
+        const inCatchZone =
+          activeLane &&
+          !wave.handled &&
+          wave.y >= top &&
+          wave.y <= bottom;
+        const tilePulse = nearCatch ? 1 + Math.sin(snapshot.timestamp / 58) * 0.035 : 1;
+
         if (item.kind === "empty") {
-          drawEmptyGate(item.lane, wave.y, itemSize);
+          drawEmptyGate(item.lane, wave.y, itemSize, nearCatch, inCatchZone, tilePulse);
           return;
         }
 
         const x = laneCenter(item.lane);
         const y = wave.y;
-        const handled = wave.handled && item.lane === playerLane;
+        const handled = wave.handled && activeLane;
         const pulse = handled ? 0.44 : 1;
-        const danger = wave.crashed && item.lane === playerLane;
-        const boostGlow = Math.min(8, (speedStack || 0) * 0.8);
+        const danger = wave.crashed && activeLane;
+        const boostGlow = Math.min(8, (snapshot.speedStack || 0) * 0.8);
 
         ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(tilePulse, tilePulse);
         ctx.globalAlpha = pulse;
-        ctx.shadowColor = danger ? "rgba(255,111,97,0.65)" : "rgba(0,0,0,0.38)";
-        ctx.shadowBlur = danger ? 26 : 14 + boostGlow;
+        ctx.shadowColor = danger
+          ? "rgba(255,111,97,0.65)"
+          : inCatchZone
+            ? "rgba(241,211,91,0.74)"
+            : "rgba(0,0,0,0.38)";
+        ctx.shadowBlur = danger ? 26 : inCatchZone ? 26 : 14 + boostGlow;
         ctx.shadowOffsetY = 10;
         roundedRect(
-          x - itemSize / 2,
-          y - itemSize / 2,
+          -itemSize / 2,
+          -itemSize / 2,
           itemSize,
           itemSize,
           8,
@@ -176,36 +261,41 @@
         ctx.fillStyle = danger ? "#ff6f61" : "#f2d55b";
         ctx.fill();
         ctx.shadowColor = "transparent";
-        ctx.strokeStyle = "rgba(20,20,20,0.35)";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = inCatchZone ? "#f2f2ea" : "rgba(20,20,20,0.35)";
+        ctx.lineWidth = inCatchZone ? 5 : 3;
         ctx.stroke();
 
         ctx.fillStyle = danger ? "#2a0907" : "#17140a";
         ctx.font = `900 ${Math.round(itemSize * 0.52)}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(String(item.value), x, y + 2);
+        ctx.fillText(String(item.value), 0, 2);
         ctx.restore();
       });
     }
 
-    function drawEmptyGate(lane, y, itemSize) {
+    function drawEmptyGate(lane, y, itemSize, nearCatch, inCatchZone, tilePulse) {
       const x = laneCenter(lane);
       ctx.save();
-      ctx.globalAlpha = 0.44;
+      ctx.translate(x, y);
+      ctx.scale(tilePulse, tilePulse);
+      ctx.globalAlpha = nearCatch ? 0.72 : 0.44;
       ctx.strokeStyle = "#4ac7a5";
-      ctx.lineWidth = 4;
+      ctx.lineWidth = inCatchZone ? 6 : 4;
+      ctx.shadowColor = inCatchZone ? "rgba(74,199,165,0.64)" : "transparent";
+      ctx.shadowBlur = inCatchZone ? 24 : 0;
       ctx.setLineDash([10, 10]);
-      roundedRect(x - itemSize / 2, y - itemSize / 2, itemSize, itemSize, 8);
+      roundedRect(-itemSize / 2, -itemSize / 2, itemSize, itemSize, 8);
       ctx.stroke();
+      ctx.shadowColor = "transparent";
       ctx.setLineDash([]);
-      ctx.fillStyle = "rgba(74,199,165,0.08)";
+      ctx.fillStyle = inCatchZone ? "rgba(74,199,165,0.16)" : "rgba(74,199,165,0.08)";
       ctx.fill();
       ctx.fillStyle = "#4ac7a5";
       ctx.font = `900 ${Math.max(12, Math.round(itemSize * 0.21))}px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("BOOST", x, y);
+      ctx.fillText("BOOST", 0, 0);
       ctx.restore();
     }
 
@@ -215,7 +305,7 @@
       const progress = flipping
         ? 1 - (snapshot.flipUntil - snapshot.timestamp) / config.FLIP_DURATION
         : 0;
-      const lift = flipping ? Math.sin(progress * Math.PI) * 64 : 0;
+      const lift = flipping ? Math.sin(progress * Math.PI) * 74 : 0;
       const spin = flipping ? progress * Math.PI * 2 : 0;
       const stack = snapshot.speedStack || 0;
       const boostWind = boostMotionLevel(snapshot);
@@ -233,9 +323,13 @@
         ctx.rotate(spin);
         ctx.globalAlpha = 0.35;
         ctx.strokeStyle = "#4ac7a5";
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 6;
         ctx.beginPath();
         ctx.arc(0, 4, 48, -Math.PI * 0.25, Math.PI * 1.15);
+        ctx.stroke();
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath();
+        ctx.arc(0, 4, 64, Math.PI * 0.15, Math.PI * 1.35);
         ctx.stroke();
         ctx.restore();
       }
@@ -360,7 +454,7 @@
 
     function drawOverlay(snapshot) {
       ctx.fillStyle = "rgba(0,0,0,0.36)";
-      roundedRect(18, 18, 230, 70, 8);
+      roundedRect(18, 18, 300, 70, 8);
       ctx.fill();
       ctx.fillStyle = "#f2f2ea";
       ctx.font = "900 18px Inter, system-ui, sans-serif";
@@ -369,7 +463,11 @@
       ctx.fillText(`Guess ${snapshot.gameState.history.length + 1}`, 34, 40);
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "800 15px Inter, system-ui, sans-serif";
-      ctx.fillText(`${formatTime(snapshot.elapsedMs)}  ·  Boost ${snapshot.speedStack}`, 34, 65);
+      ctx.fillText(
+        `${formatTime(snapshot.elapsedMs)}  ·  Speed x${snapshot.speedMultiplierValue.toFixed(2)}  ·  Boost ${snapshot.speedStack}`,
+        34,
+        65,
+      );
       drawBoostBadge(snapshot);
 
       if (snapshot.lastGuessPulse) {

@@ -40,14 +40,16 @@
 
     function playEffect(kind) {
       if (kind === "flip") {
-        playTone(440, 0.08, "triangle", 0.045, 0);
-        playTone(690, 0.11, "triangle", 0.035, 0.045);
+        playTone(330, 0.055, "sawtooth", 0.032, 0);
+        playTone(560, 0.09, "triangle", 0.045, 0.035);
+        playTone(920, 0.12, "triangle", 0.035, 0.09);
       } else if (kind === "boost") {
         playTone(380, 0.08, "sawtooth", 0.035, 0);
         playTone(760, 0.16, "triangle", 0.055, 0.055);
       } else if (kind === "collect") {
-        playTone(520, 0.07, "square", 0.045, 0);
-        playTone(980, 0.11, "triangle", 0.05, 0.06);
+        playTone(180, 0.055, "square", 0.032, 0);
+        playTone(560, 0.075, "square", 0.045, 0.025);
+        playTone(1040, 0.14, "triangle", 0.058, 0.075);
       } else if (kind === "guess") {
         playTone(420, 0.09, "triangle", 0.045, 0);
         playTone(620, 0.09, "triangle", 0.045, 0.08);

@@ -62,7 +62,7 @@
     speedStack = 0;
     combo = 0;
     lastGuessPulse = null;
-    message = "빈칸은 가속, 박치기는 감속. 3개를 먹으면 조합 추측!";
+    message = "점프 존에서 공중제비를 돌면 숫자 캐치. 빈칸은 달려서 통과하면 부스트!";
     effects.reset();
     spawnWave();
     updatePauseButton();
@@ -115,16 +115,18 @@
     audio.ensureAudio();
     flipUntil = now + config.FLIP_DURATION;
     lastFlipAt = now;
-    shake(4);
-    flash("rgba(74,199,165,0.22)", 0.32);
-    effects.addFloater(renderer.laneCenter(playerLane), config.PLAYER_Y - 118, "FLIP!", "#4ac7a5", 0.72);
+    shake(6);
+    flash("rgba(74,199,165,0.24)", 0.34);
+    effects.addFloater(renderer.laneCenter(playerLane), config.CATCH_Y - 68, "FLIP", "#4ac7a5", 0.72);
     effects.burst(
       renderer.laneCenter(playerLane),
-      config.PLAYER_Y - 44,
+      config.CATCH_Y,
       "#4ac7a5",
-      scaledEffectCount(12),
-      220,
+      scaledEffectCount(18),
+      280,
     );
+    message = "공중제비!";
+    renderHud();
     audio.playEffect("flip");
   }
 
@@ -181,12 +183,12 @@
     combo += 1;
     wave.consumedLane = item.lane;
     gameState = core.collectDigit(gameState, item.value);
-    shake(7);
+    shake(10);
     effects.flashLane(item.lane, "#f1d35b", 0.62);
-    flash("rgba(241,211,91,0.24)", 0.34);
-    effects.burst(x, config.CATCH_Y, "#f1d35b", scaledEffectCount(20), 320);
-    effects.addFloater(x, config.CATCH_Y - 48, `+${item.value}`, "#f1d35b", 1);
-    message = `${item.value} 수집 · ${gameState.currentGuess.length}/3`;
+    flash("rgba(241,211,91,0.28)", 0.4);
+    effects.burst(x, config.CATCH_Y, "#f1d35b", scaledEffectCount(28), 380);
+    effects.addFloater(x, config.CATCH_Y - 54, `CATCH ${item.value}`, "#f1d35b", 1);
+    message = `${item.value} 점프 캐치 · ${gameState.currentGuess.length}/3`;
     audio.playEffect("collect");
 
     if (gameState.history.length > before) {
@@ -246,13 +248,18 @@
   }
 
   function handleCatch(now) {
-    if (paused || !wave || wave.handled || Math.abs(wave.y - config.CATCH_Y) > 26) return;
+    if (paused || !wave || wave.handled || wave.y < config.CATCH_Y - config.CATCH_WINDOW) return;
 
     const item = currentLaneItem();
+    const isFlipping = now < flipUntil;
+    const passedCatchZone = wave.y > config.CATCH_Y + config.CATCH_WINDOW;
+
+    if (!isFlipping && !passedCatchZone) return;
+
     wave.handled = true;
 
     if (!item || item.kind === "empty") {
-      if (now < flipUntil) {
+      if (isFlipping) {
         passEmptyWhileFlipping();
       } else {
         boostFromEmpty();
@@ -261,7 +268,7 @@
       return;
     }
 
-    if (now < flipUntil) {
+    if (isFlipping) {
       collectNumber(item);
     } else {
       crashIntoNumber();
@@ -279,7 +286,7 @@
       "#9fc5ff",
       0.72,
     );
-    message = "공중제비 중 빈칸 통과 · 부스트 없음";
+    message = "빈칸 점프 통과 · 부스트 없음";
   }
 
   function updateLastGuessPulse(dt) {
@@ -344,7 +351,7 @@
       gameState,
       message,
       paused,
-      speedMultiplier,
+      speedMultiplierValue: speedMultiplier(),
       speedStack,
       tuning,
     };

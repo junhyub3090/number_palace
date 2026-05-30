@@ -228,8 +228,8 @@
 
   function crashIntoNumber() {
     nextExcluded = waveDigits(wave);
-    const lost = Math.min(speedStack, 2);
-    speedStack = Math.max(0, speedStack - 2);
+    const lost = speedStack;
+    speedStack = 0;
     combo = 0;
     wave.crashed = true;
     shake(18);

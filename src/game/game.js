@@ -183,6 +183,7 @@
     if (gameEnded || paused || !wave || wave.handled || now - lastDashAt < config.DASH_COOLDOWN) return;
 
     const item = currentLaneItem();
+    const highlightColor = itemHighlightColor(item);
     lastDashAt = now;
     audio.ensureAudio();
     wave.handled = true;
@@ -217,13 +218,13 @@
       life: 0.3,
     });
     shake(12);
-    flash("rgba(107,168,255,0.3)", 0.46);
-    effects.flashLane(playerLane, "#6ba8ff", 0.62);
+    flash(colorWithAlpha(highlightColor, 0.28), 0.46);
+    effects.flashLane(playerLane, highlightColor, 0.62);
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 92,
       "DASH",
-      "#6ba8ff",
+      highlightColor,
       0.58,
     );
     audio.playEffect("dash");
@@ -260,12 +261,12 @@
 
     const impact = wave.dashImpact;
     const item = wave.items.find((candidate) => candidate.lane === impact.lane);
-    const color = item && item.kind === "empty" ? "#4ac7a5" : "#f1d35b";
+    const color = itemHighlightColor(item);
     const x = renderer.laneCenter(impact.lane);
 
     wave.consumedLane = impact.lane;
     shake(22);
-    flash(item && item.kind === "empty" ? "rgba(74,199,165,0.38)" : "rgba(241,211,91,0.42)", 0.72);
+    flash(colorWithAlpha(color, item && item.kind === "empty" ? 0.38 : 0.42), 0.72);
     effects.flashLane(impact.lane, color, 0.78);
     effects.burst(x, config.CATCH_Y, color, scaledEffectCount(42), 720);
     effects.burst(x, config.CATCH_Y, "#f2f2ea", scaledEffectCount(16), 520);
@@ -282,6 +283,37 @@
 
   function currentLaneItem() {
     return wave.items.find((item) => item.lane === playerLane);
+  }
+
+  function digitColor(value) {
+    if (typeof config.digitColor === "function") {
+      return config.digitColor(value);
+    }
+
+    return "#f1d35b";
+  }
+
+  function itemHighlightColor(item) {
+    if (item && item.kind === "digit") {
+      return digitColor(item.value);
+    }
+
+    return "#4ac7a5";
+  }
+
+  function colorWithAlpha(color, alpha) {
+    const hex = String(color || "").replace("#", "");
+    const safeAlpha = Math.max(0, Math.min(1, alpha || 0));
+
+    if (hex.length !== 6) {
+      return `rgba(242,242,234,${safeAlpha})`;
+    }
+
+    const red = parseInt(hex.slice(0, 2), 16);
+    const green = parseInt(hex.slice(2, 4), 16);
+    const blue = parseInt(hex.slice(4, 6), 16);
+
+    return `rgba(${red},${green},${blue},${safeAlpha})`;
   }
 
   function flash(color, amount) {
@@ -326,16 +358,17 @@
   function collectNumber(item, source, options = {}) {
     const before = gameState.history.length;
     const x = renderer.laneCenter(item.lane);
+    const color = digitColor(item.value);
     combo += 1;
     wave.consumedLane = item.lane;
     gameState = core.collectDigit(gameState, item.value);
     shake(source === "dash" ? 14 : 10);
-    effects.flashLane(item.lane, "#f1d35b", 0.62);
-    flash("rgba(241,211,91,0.28)", source === "dash" ? 0.52 : 0.4);
+    effects.flashLane(item.lane, color, 0.66);
+    flash(colorWithAlpha(color, 0.3), source === "dash" ? 0.52 : 0.4);
     effects.burst(
       x,
       config.CATCH_Y,
-      "#f1d35b",
+      color,
       scaledEffectCount(options.impact ? 44 : 28),
       options.impact ? 680 : 380,
     );
@@ -343,7 +376,7 @@
       x,
       config.CATCH_Y - 54,
       source === "dash" ? `DASH ${item.value}` : `CATCH ${item.value}`,
-      "#f1d35b",
+      color,
       source === "dash" ? 1.08 : 1,
     );
     message = source === "dash"
@@ -450,15 +483,16 @@
   }
 
   function collectHintFromEmpty() {
+    const color = "#4ac7a5";
     hintProgress = Math.min(3, hintProgress + 1);
     combo += 1;
     shake(4);
-    effects.flashLane(playerLane, "#6ba8ff", 0.38);
-    flash("rgba(107,168,255,0.18)", 0.28);
+    effects.flashLane(playerLane, color, 0.38);
+    flash(colorWithAlpha(color, 0.18), 0.28);
     effects.burst(
       renderer.laneCenter(playerLane),
       config.CATCH_Y,
-      "#6ba8ff",
+      color,
       scaledEffectCount(12),
       230,
     );
@@ -466,7 +500,7 @@
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 38,
       `HINT ${hintProgress}/3`,
-      "#9fc5ff",
+      "#aef4dc",
       0.84,
     );
     audio.playEffect("guess");

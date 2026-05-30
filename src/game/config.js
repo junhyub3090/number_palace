@@ -2,11 +2,32 @@
   const WIDTH = 560;
   const HEIGHT = 1040;
   const LANES = 4;
+  const DIGIT_TILE_COLORS = [
+    "#d6bb57",
+    "#68b89b",
+    "#719bd6",
+    "#d7848b",
+    "#a88bd6",
+    "#70b8c8",
+    "#d39a58",
+    "#94bc6a",
+    "#d482bd",
+  ];
+
+  function digitColor(value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return DIGIT_TILE_COLORS[0];
+
+    return DIGIT_TILE_COLORS[
+      Math.abs(Math.round(numericValue) - 1) % DIGIT_TILE_COLORS.length
+    ];
+  }
 
   global.RunningBaseballConfig = {
     WIDTH,
     HEIGHT,
     LANES,
+    DIGIT_TILE_COLORS,
     LANE_WIDTH: WIDTH / LANES,
     PLAYER_Y: HEIGHT - 118,
     CATCH_Y: HEIGHT - 154,
@@ -29,5 +50,6 @@
       speedCap: 2.65,
       timeLimitSeconds: 120,
     },
+    digitColor,
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

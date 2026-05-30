@@ -3,17 +3,6 @@
     const ctx = canvas.getContext("2d");
     const NUMBER_FONT_FAMILY =
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    const DIGIT_TILE_COLORS = [
-      "#d6bb57",
-      "#68b89b",
-      "#719bd6",
-      "#d7848b",
-      "#a88bd6",
-      "#70b8c8",
-      "#d39a58",
-      "#94bc6a",
-      "#d482bd",
-    ];
     let viewportWidth = config.WIDTH;
     let viewportHeight = config.HEIGHT;
     let stageX = 0;
@@ -48,12 +37,11 @@
     }
 
     function digitColor(value) {
-      const numericValue = Number(value);
-      if (!Number.isFinite(numericValue)) return DIGIT_TILE_COLORS[0];
+      if (typeof config.digitColor === "function") {
+        return config.digitColor(value);
+      }
 
-      return DIGIT_TILE_COLORS[
-        Math.abs(Math.round(numericValue) - 1) % DIGIT_TILE_COLORS.length
-      ];
+      return "#d6bb57";
     }
 
     function numberFont(size, weight = 950) {
@@ -599,10 +587,10 @@
 
       if (length < 10 || fade <= 0.01) return;
 
-      const width = itemSize * (active ? 0.82 : 0.62);
-      const glowWidth = width * (active ? 1.28 : 1.1);
-      const baseAlpha = (active ? 0.38 : 0.2) * fade;
-      const brightColor = mixColorWithWhite(color, active ? 0.68 : 0.52);
+      const width = itemSize * (active ? 0.86 : 0.66);
+      const glowWidth = width * (active ? 1.36 : 1.16);
+      const baseAlpha = (active ? 0.52 : 0.3) * fade;
+      const brightColor = mixColorWithWhite(color, active ? 0.82 : 0.68);
       const streakCount = Math.max(3, Math.min(12, Math.floor(length / (itemSize * 0.58))));
 
       ctx.save();
@@ -610,11 +598,11 @@
 
       const glow = ctx.createLinearGradient(x, top, x, bottom);
       glow.addColorStop(0, colorWithAlpha(color, 0));
-      glow.addColorStop(0.2, colorWithAlpha(color, baseAlpha * 0.32));
-      glow.addColorStop(0.72, colorWithAlpha(color, baseAlpha));
+      glow.addColorStop(0.2, colorWithAlpha(color, baseAlpha * 0.36));
+      glow.addColorStop(0.72, colorWithAlpha(color, baseAlpha * 1.08));
       glow.addColorStop(1, active
-        ? "rgba(242,242,234,0.44)"
-        : colorWithAlpha(color, baseAlpha * 0.64));
+        ? colorWithAlpha(brightColor, 0.62 * fade)
+        : colorWithAlpha(color, baseAlpha * 0.76));
 
       ctx.globalAlpha = 1;
       ctx.fillStyle = glow;
@@ -629,13 +617,13 @@
 
       const center = ctx.createLinearGradient(x, top, x, bottom);
       center.addColorStop(0, colorWithAlpha(brightColor, 0));
-      center.addColorStop(0.18, colorWithAlpha(brightColor, baseAlpha * 0.42));
-      center.addColorStop(0.76, colorWithAlpha(brightColor, baseAlpha * 1.35));
-      center.addColorStop(1, colorWithAlpha(brightColor, active ? 0.78 * fade : 0.45 * fade));
+      center.addColorStop(0.18, colorWithAlpha(brightColor, baseAlpha * 0.52));
+      center.addColorStop(0.76, colorWithAlpha(brightColor, baseAlpha * 1.45));
+      center.addColorStop(1, colorWithAlpha(brightColor, active ? 0.88 * fade : 0.56 * fade));
 
       ctx.globalAlpha = 1;
       ctx.strokeStyle = center;
-      ctx.lineWidth = active ? width * 0.24 : width * 0.18;
+      ctx.lineWidth = active ? width * 0.28 : width * 0.2;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(x, top + itemSize * 0.08);
@@ -646,7 +634,7 @@
         const depth = streakCount === 1 ? 1 : index / (streakCount - 1);
         const easeDepth = easeOutCubic(depth);
         const y = top + length * easeDepth;
-        const opacity = baseAlpha * (0.14 + easeDepth * 0.5) * (1 - depth * 0.24);
+        const opacity = baseAlpha * (0.18 + easeDepth * 0.54) * (1 - depth * 0.2);
         const dashWidth = width * (0.34 + easeDepth * (active ? 0.44 : 0.28));
         const slant = itemSize * (active ? 0.16 : 0.1);
 

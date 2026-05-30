@@ -247,6 +247,7 @@
     const color = item && item.kind === "empty" ? "#4ac7a5" : "#f1d35b";
     const x = renderer.laneCenter(impact.lane);
 
+    wave.consumedLane = impact.lane;
     shake(22);
     flash(item && item.kind === "empty" ? "rgba(74,199,165,0.38)" : "rgba(241,211,91,0.42)", 0.72);
     effects.flashLane(impact.lane, color, 0.78);

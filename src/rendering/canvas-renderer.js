@@ -202,6 +202,9 @@
       ctx.save();
       ctx.translate(stageX + shakeX, stageY + shakeY);
       ctx.scale(stageScale, stageScale);
+      ctx.beginPath();
+      ctx.rect(0, 0, config.WIDTH, config.HEIGHT);
+      ctx.clip();
       drawTrack(snapshot);
       drawWave(snapshot);
       drawPlayer(snapshot);
@@ -443,6 +446,10 @@
         const activeLane = item.lane === snapshot.playerLane;
         const impactActive = impact && item.lane === impact.lane;
         const impactHit = Boolean(impactActive && impactProgress >= collisionProgress);
+        const consumedByDash =
+          impact &&
+          wave.consumedLane === item.lane &&
+          impactProgress >= collisionProgress;
         const impactAlpha = impact
           ? impactActive && impactHit
             ? Math.max(0, 1 - afterImpactProgress * 5)
@@ -483,8 +490,12 @@
         const itemY = wave.y + impactYOffset;
         const itemX = laneCenter(item.lane);
 
+        if (consumedByDash) {
+          return;
+        }
+
         if (impact) {
-          drawDashMeteorTrail(
+          drawDashBoxTrace(
             itemX,
             itemY,
             itemSize,
@@ -529,6 +540,63 @@
         });
         ctx.restore();
       });
+    }
+
+    function drawDashBoxTrace(x, y, itemSize, color, active, progress, alpha) {
+      const fade = Math.max(0, Math.min(1, alpha));
+      const segmentCount = active ? 7 : 5;
+      const gap = itemSize * 0.42;
+      const traceSize = itemSize * (active ? 0.86 : 0.72);
+      const baseAlpha = active ? 0.26 : 0.13;
+      const drift = progress * itemSize * 0.55;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+
+      for (let index = 1; index <= segmentCount; index += 1) {
+        const depth = index / segmentCount;
+        const size = traceSize * (1 - depth * 0.42);
+        const segmentY = y - index * gap - drift;
+        const opacity = baseAlpha * (1 - depth * 0.78) * fade;
+
+        if (opacity <= 0.01) continue;
+
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = color;
+        roundedRect(
+          x - size / 2,
+          segmentY - size / 2,
+          size,
+          size,
+          Math.max(4, size * 0.16),
+        );
+        ctx.fill();
+
+        ctx.globalAlpha = opacity * 0.7;
+        ctx.strokeStyle = active ? "rgba(242,242,234,0.55)" : "rgba(242,242,234,0.25)";
+        ctx.lineWidth = active ? 2 : 1;
+        roundedRect(
+          x - size / 2,
+          segmentY - size / 2,
+          size,
+          size,
+          Math.max(4, size * 0.16),
+        );
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = (active ? 0.16 : 0.08) * fade;
+      ctx.fillStyle = color;
+      roundedRect(
+        x - traceSize * 0.52,
+        y - segmentCount * gap - traceSize * 0.2,
+        traceSize * 1.04,
+        segmentCount * gap,
+        8,
+      );
+      ctx.fill();
+
+      ctx.restore();
     }
 
     function drawDashMeteorTrail(x, y, itemSize, color, active, progress, alpha) {

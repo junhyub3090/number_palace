@@ -214,7 +214,7 @@
           ? wave.dashImpact.impactY
           : config.HEIGHT + 120,
       })),
-      life: 0.7,
+      life: 0.3,
     });
     shake(12);
     flash("rgba(107,168,255,0.3)", 0.46);

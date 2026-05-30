@@ -555,16 +555,37 @@
 
     function colorWithAlpha(color, alpha) {
       const hex = String(color || "").replace("#", "");
+      const safeAlpha = clamp01(alpha);
 
       if (hex.length !== 6) {
-        return `rgba(242,242,234,${alpha})`;
+        return `rgba(242,242,234,${safeAlpha})`;
       }
 
       const red = parseInt(hex.slice(0, 2), 16);
       const green = parseInt(hex.slice(2, 4), 16);
       const blue = parseInt(hex.slice(4, 6), 16);
 
-      return `rgba(${red},${green},${blue},${alpha})`;
+      return `rgba(${red},${green},${blue},${safeAlpha})`;
+    }
+
+    function mixColorWithWhite(color, amount) {
+      const hex = String(color || "").replace("#", "");
+      const mix = clamp01(amount);
+
+      if (hex.length !== 6) {
+        return "#f2f2ea";
+      }
+
+      const red = parseInt(hex.slice(0, 2), 16);
+      const green = parseInt(hex.slice(2, 4), 16);
+      const blue = parseInt(hex.slice(4, 6), 16);
+      const nextRed = Math.round(red + (242 - red) * mix);
+      const nextGreen = Math.round(green + (242 - green) * mix);
+      const nextBlue = Math.round(blue + (234 - blue) * mix);
+
+      return `#${[nextRed, nextGreen, nextBlue]
+        .map((value) => value.toString(16).padStart(2, "0"))
+        .join("")}`;
     }
 
     function drawPersistentDashTrail(item, itemSize, color, grow, fade) {
@@ -581,8 +602,8 @@
       const width = itemSize * (active ? 0.82 : 0.62);
       const glowWidth = width * (active ? 1.28 : 1.1);
       const baseAlpha = (active ? 0.38 : 0.2) * fade;
-      const stampCount = Math.max(4, Math.min(18, Math.floor(length / (itemSize * 0.42))));
-      const edgePad = itemSize * 0.08;
+      const brightColor = mixColorWithWhite(color, active ? 0.68 : 0.52);
+      const streakCount = Math.max(3, Math.min(12, Math.floor(length / (itemSize * 0.58))));
 
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -606,36 +627,40 @@
       );
       ctx.fill();
 
-      for (let index = 0; index < stampCount; index += 1) {
-        const depth = stampCount === 1 ? 1 : index / (stampCount - 1);
+      const center = ctx.createLinearGradient(x, top, x, bottom);
+      center.addColorStop(0, colorWithAlpha(brightColor, 0));
+      center.addColorStop(0.18, colorWithAlpha(brightColor, baseAlpha * 0.42));
+      center.addColorStop(0.76, colorWithAlpha(brightColor, baseAlpha * 1.35));
+      center.addColorStop(1, colorWithAlpha(brightColor, active ? 0.78 * fade : 0.45 * fade));
+
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = center;
+      ctx.lineWidth = active ? width * 0.24 : width * 0.18;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x, top + itemSize * 0.08);
+      ctx.lineTo(x, bottom - itemSize * 0.08);
+      ctx.stroke();
+
+      for (let index = 0; index < streakCount; index += 1) {
+        const depth = streakCount === 1 ? 1 : index / (streakCount - 1);
         const easeDepth = easeOutCubic(depth);
         const y = top + length * easeDepth;
-        const size = itemSize * (0.36 + easeDepth * (active ? 0.38 : 0.26));
-        const opacity = baseAlpha * (0.16 + easeDepth * 0.48) * (1 - depth * 0.22);
+        const opacity = baseAlpha * (0.14 + easeDepth * 0.5) * (1 - depth * 0.24);
+        const dashWidth = width * (0.34 + easeDepth * (active ? 0.44 : 0.28));
+        const slant = itemSize * (active ? 0.16 : 0.1);
 
         if (opacity <= 0.01) continue;
 
         ctx.globalAlpha = opacity;
-        ctx.fillStyle = color;
-        roundedRect(
-          x - size / 2,
-          y - size / 2,
-          size,
-          size,
-          Math.max(5, size * 0.18),
-        );
-        ctx.fill();
+        ctx.strokeStyle = brightColor;
+        ctx.lineWidth = active ? 4 : 2.5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x - dashWidth / 2 - slant * 0.25, y + slant * 0.5);
+        ctx.lineTo(x + dashWidth / 2 + slant * 0.25, y - slant * 0.5);
+        ctx.stroke();
       }
-
-      ctx.globalAlpha = active ? 0.42 * fade : 0.22 * fade;
-      ctx.strokeStyle = active ? "rgba(242,242,234,0.68)" : colorWithAlpha(color, 0.7);
-      ctx.lineWidth = active ? 3 : 2;
-      ctx.beginPath();
-      ctx.moveTo(x - width / 2 + edgePad, Math.max(top, bottom - itemSize * 1.2));
-      ctx.lineTo(x - width / 2 + edgePad, bottom);
-      ctx.moveTo(x + width / 2 - edgePad, Math.max(top, bottom - itemSize * 1.2));
-      ctx.lineTo(x + width / 2 - edgePad, bottom);
-      ctx.stroke();
 
       ctx.restore();
     }

@@ -189,10 +189,10 @@
     wave.dashImpact = {
       lane: playerLane,
       startTime: now,
-      duration: 0.22,
+      duration: 0.12,
       startY: wave.y,
       impactY: config.CATCH_Y,
-      endY: config.HEIGHT + 150,
+      endY: config.HEIGHT + 420,
       resolved: false,
     };
     wave.dashImpact.collisionProgress = Math.max(
@@ -200,15 +200,15 @@
       Math.min(1, (wave.dashImpact.impactY - wave.dashImpact.startY) /
         (wave.dashImpact.endY - wave.dashImpact.startY)),
     );
-    shake(8);
-    flash("rgba(107,168,255,0.2)", 0.3);
-    effects.flashLane(playerLane, "#6ba8ff", 0.42);
+    shake(12);
+    flash("rgba(107,168,255,0.3)", 0.46);
+    effects.flashLane(playerLane, "#6ba8ff", 0.62);
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 92,
       "DASH",
       "#6ba8ff",
-      0.78,
+      0.58,
     );
     audio.playEffect("dash");
     message = item && item.kind === "digit"
@@ -247,10 +247,11 @@
     const color = item && item.kind === "empty" ? "#4ac7a5" : "#f1d35b";
     const x = renderer.laneCenter(impact.lane);
 
-    shake(12);
-    flash(item && item.kind === "empty" ? "rgba(74,199,165,0.24)" : "rgba(241,211,91,0.24)", 0.36);
-    effects.flashLane(impact.lane, color, 0.58);
-    effects.burst(x, config.CATCH_Y, color, scaledEffectCount(18), 390);
+    shake(22);
+    flash(item && item.kind === "empty" ? "rgba(74,199,165,0.38)" : "rgba(241,211,91,0.42)", 0.72);
+    effects.flashLane(impact.lane, color, 0.78);
+    effects.burst(x, config.CATCH_Y, color, scaledEffectCount(42), 720);
+    effects.burst(x, config.CATCH_Y, "#f2f2ea", scaledEffectCount(16), 520);
 
     if (!item || item.kind === "empty") {
       boostFromEmpty("dash");
@@ -258,7 +259,7 @@
       return;
     }
 
-    collectNumber(item, "dash", { deferAdvance: true });
+    collectNumber(item, "dash", { deferAdvance: true, impact: true });
     renderHud();
   }
 
@@ -311,10 +312,16 @@
     combo += 1;
     wave.consumedLane = item.lane;
     gameState = core.collectDigit(gameState, item.value);
-    shake(10);
+    shake(source === "dash" ? 14 : 10);
     effects.flashLane(item.lane, "#f1d35b", 0.62);
-    flash("rgba(241,211,91,0.28)", 0.4);
-    effects.burst(x, config.CATCH_Y, "#f1d35b", scaledEffectCount(28), 380);
+    flash("rgba(241,211,91,0.28)", source === "dash" ? 0.52 : 0.4);
+    effects.burst(
+      x,
+      config.CATCH_Y,
+      "#f1d35b",
+      scaledEffectCount(options.impact ? 44 : 28),
+      options.impact ? 680 : 380,
+    );
     effects.addFloater(
       x,
       config.CATCH_Y - 54,

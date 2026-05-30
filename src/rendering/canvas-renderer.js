@@ -431,6 +431,9 @@
       const afterImpactProgress = impact
         ? clamp01((impactProgress - collisionProgress) / Math.max(0.001, 1 - collisionProgress))
         : 0;
+      const preImpactProgress = impact && collisionProgress > 0
+        ? clamp01(impactProgress / collisionProgress)
+        : impactProgress;
 
       if (impact) {
         drawDashImpactCue(wave, impact, impactProgress, itemSize);
@@ -442,7 +445,7 @@
         const impactHit = Boolean(impactActive && impactProgress >= collisionProgress);
         const impactAlpha = impact
           ? impactActive && impactHit
-            ? Math.max(0, 1 - afterImpactProgress * 3.2)
+            ? Math.max(0, 1 - afterImpactProgress * 5)
             : impactActive
               ? 1
               : 1 - afterImpactProgress * 0.2
@@ -457,8 +460,8 @@
         const impactScale = impact
           ? impactActive
             ? impactHit
-              ? 1 + afterImpactProgress * 0.42
-              : 1 + Math.sin(impactProgress * Math.PI) * 0.08
+              ? 1 + afterImpactProgress * 0.72
+              : 1 + preImpactProgress * 0.16
             : 1
           : 1;
         const nearCatch =
@@ -520,13 +523,16 @@
       const color = laneItem && laneItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
       const x = laneCenter(impact.lane);
       const collisionProgress = impact.collisionProgress || 0.5;
+      const preImpactProgress = collisionProgress > 0
+        ? clamp01(progress / collisionProgress)
+        : progress;
       const late = clamp01((progress - collisionProgress) / Math.max(0.001, 1 - collisionProgress));
       const ring = Math.sin(late * Math.PI);
 
       ctx.save();
       ctx.lineCap = "round";
 
-      ctx.globalAlpha = 0.08 + progress * 0.12;
+      ctx.globalAlpha = 0.14 + preImpactProgress * 0.22;
       ctx.fillStyle = color;
       roundedRect(
         x - config.LANE_WIDTH / 2 + 12,
@@ -540,17 +546,17 @@
       for (let lane = 0; lane < config.LANES; lane += 1) {
         const laneX = laneCenter(lane);
         const laneOffset = (lane - 1.5) * 4;
-        ctx.globalAlpha = lane === impact.lane ? 0.2 + progress * 0.18 : 0.08 + progress * 0.08;
+        ctx.globalAlpha = lane === impact.lane ? 0.24 + preImpactProgress * 0.3 : 0.08 + progress * 0.14;
         ctx.strokeStyle = lane === impact.lane ? color : "rgba(242,242,234,0.42)";
-        ctx.lineWidth = lane === impact.lane ? 3 : 2;
+        ctx.lineWidth = lane === impact.lane ? 4 : 2;
         ctx.beginPath();
-        ctx.moveTo(laneX - 22 + laneOffset, Math.max(44, wave.y - itemSize * 1.2));
-        ctx.lineTo(laneX + 8 + laneOffset, Math.min(config.HEIGHT + 80, wave.y + itemSize * 1.8));
+        ctx.moveTo(laneX - 30 + laneOffset, Math.max(30, wave.y - itemSize * 2.2));
+        ctx.lineTo(laneX + 16 + laneOffset, Math.min(config.HEIGHT + 170, wave.y + itemSize * 2.7));
         ctx.stroke();
       }
 
       if (late > 0) {
-        ctx.globalAlpha = 0.34 * ring;
+        ctx.globalAlpha = 0.44 * ring;
         ctx.fillStyle = color;
         roundedRect(
           x - config.LANE_WIDTH / 2 + 18,
@@ -561,22 +567,40 @@
         );
         ctx.fill();
 
-        ctx.globalAlpha = 0.72 * ring;
+        ctx.globalAlpha = 0.86 * ring;
         ctx.strokeStyle = color;
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 7;
         ctx.beginPath();
-        ctx.arc(x, config.CATCH_Y, 24 + late * 38, 0, Math.PI * 2);
+        ctx.arc(x, config.CATCH_Y, 28 + late * 58, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.globalAlpha = 0.56 * ring;
+        ctx.globalAlpha = 0.62 * ring;
         ctx.strokeStyle = "#f2f2ea";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(x - 58, config.CATCH_Y);
-        ctx.lineTo(x - 26, config.CATCH_Y);
-        ctx.moveTo(x + 26, config.CATCH_Y);
-        ctx.lineTo(x + 58, config.CATCH_Y);
+        ctx.moveTo(x - 78, config.CATCH_Y);
+        ctx.lineTo(x - 28, config.CATCH_Y);
+        ctx.moveTo(x + 28, config.CATCH_Y);
+        ctx.lineTo(x + 78, config.CATCH_Y);
+        ctx.moveTo(x, config.CATCH_Y - 58);
+        ctx.lineTo(x, config.CATCH_Y - 24);
+        ctx.moveTo(x, config.CATCH_Y + 24);
+        ctx.lineTo(x, config.CATCH_Y + 58);
         ctx.stroke();
+
+        ctx.globalAlpha = 0.72 * ring;
+        fillPolygon(
+          [[x - 12, config.CATCH_Y - 14], [x - 55, config.CATCH_Y - 36], [x - 22, config.CATCH_Y + 2]],
+          color,
+        );
+        fillPolygon(
+          [[x + 12, config.CATCH_Y + 14], [x + 56, config.CATCH_Y + 38], [x + 22, config.CATCH_Y - 2]],
+          color,
+        );
+        fillPolygon(
+          [[x - 8, config.CATCH_Y + 18], [x - 38, config.CATCH_Y + 70], [x + 8, config.CATCH_Y + 32]],
+          "#f2f2ea",
+        );
       }
 
       ctx.restore();

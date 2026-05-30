@@ -43,9 +43,10 @@
         playTone(380, 0.08, "sawtooth", 0.035, 0);
         playTone(760, 0.16, "triangle", 0.055, 0.055);
       } else if (kind === "dash") {
-        playTone(150, 0.045, "square", 0.032, 0);
-        playTone(460, 0.07, "sawtooth", 0.04, 0.035);
-        playTone(920, 0.09, "triangle", 0.042, 0.07);
+        playTone(110, 0.045, "square", 0.04, 0);
+        playTone(280, 0.055, "sawtooth", 0.045, 0.018);
+        playTone(880, 0.075, "triangle", 0.048, 0.055);
+        playTone(1320, 0.09, "sine", 0.04, 0.095);
       } else if (kind === "collect") {
         playTone(180, 0.055, "square", 0.032, 0);
         playTone(560, 0.075, "square", 0.045, 0.025);

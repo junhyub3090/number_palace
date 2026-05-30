@@ -705,7 +705,8 @@
   });
 
   document.querySelectorAll("[data-action]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
       const action = button.dataset.action;
       audio.ensureAudio();
       if (action === "left") moveLane(-1);

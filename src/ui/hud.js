@@ -89,7 +89,9 @@
     renderGuessSlots(elements.guessSlots, viewState.gameState.currentGuess);
     renderHistory(elements.historyList, core, viewState.gameState.history);
     renderDevSecret(elements.devSecretValue, viewState.gameState.secret);
-    elements.messageBox.textContent = viewState.message;
+    if (elements.messageBox) {
+      elements.messageBox.textContent = viewState.message;
+    }
   }
 
   function renderDevSecret(container, secret) {

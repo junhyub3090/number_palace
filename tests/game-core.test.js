@@ -77,7 +77,9 @@ equal(core.scoreSolvedSet(1), 500);
 equal(core.scoreSolvedSet(4), 500);
 equal(core.scoreSolvedSet(5), 450);
 equal(core.scoreSolvedSet(6), 400);
-equal(core.scoreSolvedSet(14), 0);
+equal(core.scoreSolvedSet(14), 150);
+equal(core.scoreSolvedSet(100), 150);
+equal(core.scoreSolvedSet(14, { minScore: 0 }), 0);
 equal(core.scoreSolvedSet(3, { graceGuesses: 2, penaltyPerGuess: 25 }), 475);
 
 {

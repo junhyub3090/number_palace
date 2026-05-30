@@ -201,13 +201,17 @@
     const settings = options || {};
     const baseScore = Number.isFinite(settings.baseScore) ? settings.baseScore : 500;
     const graceGuesses = Number.isFinite(settings.graceGuesses) ? settings.graceGuesses : 4;
+    const minScore = Math.max(
+      0,
+      Number.isFinite(settings.minScore) ? settings.minScore : 150,
+    );
     const penaltyPerGuess = Number.isFinite(settings.penaltyPerGuess)
       ? settings.penaltyPerGuess
       : 50;
     const safeGuessCount = Math.max(0, Math.floor(Number(guessCount) || 0));
     const penaltySteps = Math.max(0, safeGuessCount - graceGuesses);
 
-    return Math.max(0, baseScore - penaltySteps * penaltyPerGuess);
+    return Math.max(minScore, baseScore - penaltySteps * penaltyPerGuess);
   }
 
   function createGameState(options) {

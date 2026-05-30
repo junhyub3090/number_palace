@@ -381,6 +381,7 @@
     return core.scoreSolvedSet(guessCount, {
       baseScore: 500,
       graceGuesses: Math.max(0, tuning.scoreGraceGuesses || 4),
+      minScore: 150,
       penaltyPerGuess: 50,
     });
   }

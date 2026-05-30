@@ -61,6 +61,36 @@ deepEqual(core.scoreGuess([1, 2, 3], [1, 1, 1]), {
   balls: 0,
 });
 
+deepEqual(core.scoreGuess([1, 1, 2], [1, 2, 2]), {
+  strikes: 2,
+  balls: 0,
+});
+
+deepEqual(core.scoreGuess([1, 1, 2], [1, 1, 1]), {
+  strikes: 2,
+  balls: 0,
+});
+
+deepEqual(core.digitPool(5), [1, 2, 3, 4, 5]);
+
+deepEqual(
+  core.createSecret({
+    allowDuplicates: true,
+    digitMax: 5,
+    rng: makeRng([0, 0, 0]),
+  }),
+  [1, 1, 1],
+);
+
+deepEqual(
+  core.createSecret({
+    allowDuplicates: false,
+    digitMax: 5,
+    rng: makeRng([0, 0.99, 0.5]),
+  }),
+  [1, 5, 3],
+);
+
 {
   const wave = core.createWave(makeRng([0, 0, 0, 0]), [1, 2, 3]);
   equal(wave.items.filter((item) => item.kind === "empty").length, 1);
@@ -71,7 +101,21 @@ deepEqual(core.scoreGuess([1, 2, 3], [1, 1, 1]), {
 }
 
 {
+  const wave = core.createWave(makeRng([0, 0, 0, 0]), [], {
+    allowDuplicates: true,
+    digitMax: 5,
+  });
+  equal(wave.items.filter((item) => item.kind === "empty").length, 1);
+  deepEqual(
+    wave.items.filter((item) => item.kind === "digit").map((item) => item.value),
+    [1, 1, 1],
+  );
+}
+
+{
   const state = core.createGameState({
+    allowDuplicates: false,
+    digitMax: 5,
     secret: [1, 2, 3],
     rng: makeRng([0, 0.12, 0.25, 0.38]),
   });

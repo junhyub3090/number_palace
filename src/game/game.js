@@ -12,6 +12,7 @@
   const effects = window.RunningBaseballEffects.createEffects(config, renderer.laneCenter);
   const elements = hud.getHudElements(document);
   const pauseButton = document.getElementById("pauseButton");
+  const deathButton = document.getElementById("deathButton");
   const restartButton = document.getElementById("restartButton");
 
   let tuning = { ...config.DEFAULT_TUNING };
@@ -30,6 +31,9 @@
   let speedStack;
   let elapsedMs;
   let finalTimeMs;
+  let score;
+  let gameEnded;
+  let endReason;
   let combo;
   let lastGuessPulse;
   let paused;
@@ -38,15 +42,25 @@
     document,
     tuning,
     (nextTuning) => {
+      const shouldReset =
+        gameState &&
+        (tuning.digitMax !== nextTuning.digitMax ||
+          tuning.allowDuplicates !== nextTuning.allowDuplicates);
       tuning = nextTuning;
-      if (gameState) {
+      if (shouldReset) {
+        resetGame();
+      } else if (gameState) {
+        if (!gameEnded && elapsedMs >= timeLimitMs()) {
+          endGame("time");
+          return;
+        }
         renderHud();
       }
     },
   );
 
   function resetGame() {
-    gameState = core.createGameState();
+    gameState = core.createGameState(generationOptions());
     playerLane = 1;
     nextExcluded = [];
     flipUntil = 0;
@@ -54,6 +68,9 @@
     lastFrame = performance.now();
     elapsedMs = 0;
     finalTimeMs = null;
+    score = 0;
+    gameEnded = false;
+    endReason = null;
     paused = false;
     spawnCounter = 0;
     shakeAmount = 0;
@@ -78,7 +95,7 @@
   }
 
   function spawnWave() {
-    const base = core.createWave(Math.random, nextExcluded);
+    const base = core.createWave(Math.random, nextExcluded, generationOptions());
     nextExcluded = [];
     wave = {
       id: spawnCounter++,
@@ -92,8 +109,23 @@
     renderHud();
   }
 
+  function generationOptions() {
+    return {
+      allowDuplicates: tuning.allowDuplicates,
+      digitMax: tuning.digitMax,
+    };
+  }
+
+  function timeLimitMs() {
+    return Math.max(1, tuning.timeLimitSeconds || 300) * 1000;
+  }
+
+  function remainingMs() {
+    return Math.max(0, timeLimitMs() - elapsedMs);
+  }
+
   function moveLane(delta) {
-    if (gameState.solved || paused) return;
+    if (gameEnded || paused) return;
 
     const nextLane = Math.max(0, Math.min(config.LANES - 1, playerLane + delta));
     if (nextLane !== playerLane) {
@@ -110,7 +142,7 @@
   }
 
   function startFlip(now) {
-    if (gameState.solved || paused || now - lastFlipAt < config.FLIP_COOLDOWN) return;
+    if (gameEnded || paused || now - lastFlipAt < config.FLIP_COOLDOWN) return;
 
     audio.ensureAudio();
     flipUntil = now + config.FLIP_DURATION;
@@ -196,7 +228,7 @@
     }
 
     if (gameState.solved) {
-      showClearResult();
+      completeSet();
     }
   }
 
@@ -212,18 +244,18 @@
     audio.playEffect("guess");
   }
 
-  function showClearResult() {
-    finalTimeMs = elapsedMs;
+  function completeSet() {
+    const solvedSecret = gameState.secret.join("");
+    score += 1;
     flash("rgba(241,211,91,0.38)", 0.7);
     effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", scaledEffectCount(48), 460);
-    message = `정답 ${gameState.secret.join("")} · ${hud.formatTime(finalTimeMs)}`;
+    effects.addFloater(config.WIDTH / 2, config.HEIGHT / 2 + 54, `SET ${score}`, "#f1d35b", 1.18);
+    message = `정답 ${solvedSecret} · ${score}세트 클리어`;
     audio.playEffect("clear");
-
-    if (window.FirebaseApi) {
-      window.FirebaseApi.updateBestClearTime(finalTimeMs).catch(err => {
-        console.error("최단 클리어 시간 업데이트 실패:", err);
-      });
-    }
+    gameState = core.createGameState(generationOptions());
+    nextExcluded = [];
+    combo = 0;
+    spawnWave();
   }
 
   function crashIntoNumber() {
@@ -245,16 +277,16 @@
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 46,
-      lost > 0 ? `CRASH -${lost}` : "CRASH",
+      lost > 0 ? "BOOST 0" : "CRASH",
       "#ff6f61",
       1.05,
     );
-    message = lost > 0 ? `박치기 · 부스트 -${lost}` : "박치기 · 부스트 유지";
+    message = lost > 0 ? "박치기 · 부스트 초기화" : "박치기";
     audio.playEffect("crash");
   }
 
   function handleCatch(now) {
-    if (paused || !wave || wave.handled || wave.y < config.CATCH_Y - config.CATCH_WINDOW) return;
+    if (gameEnded || paused || !wave || wave.handled || wave.y < config.CATCH_Y - config.CATCH_WINDOW) return;
 
     const item = currentLaneItem();
     const isFlipping = now < flipUntil;
@@ -309,14 +341,18 @@
     lastFrame = timestamp;
 
     if (!paused) {
-      if (!gameState.solved) {
+      if (!gameEnded) {
         elapsedMs += dt * 1000;
+        if (elapsedMs >= timeLimitMs()) {
+          elapsedMs = timeLimitMs();
+          endGame("time");
+        }
       }
 
       const speed = speedMultiplier();
       effects.updateStars(dt, speed, speedStack);
 
-      if (!gameState.solved) {
+      if (!gameEnded) {
         wave.y += wave.speed * speed * dt;
         handleCatch(timestamp);
 
@@ -337,10 +373,33 @@
   }
 
   function togglePause() {
-    if (gameState.solved) return;
+    if (gameEnded) return;
 
     paused = !paused;
     message = paused ? "일시정지" : "재개";
+    updatePauseButton();
+    renderHud();
+  }
+
+  function endGame(reason) {
+    if (gameEnded) return;
+
+    gameEnded = true;
+    endReason = reason;
+    finalTimeMs = elapsedMs;
+    paused = false;
+    speedStack = 0;
+    combo = 0;
+    flash(reason === "time" ? "rgba(241,211,91,0.3)" : "rgba(255,111,97,0.34)", 0.65);
+    effects.burst(
+      config.WIDTH / 2,
+      config.HEIGHT / 2,
+      reason === "time" ? "#f1d35b" : "#ff6f61",
+      scaledEffectCount(42),
+      420,
+    );
+    message = `${reason === "time" ? "시간 종료" : "게임 종료"} · ${score}세트`;
+    audio.playEffect(reason === "time" ? "guess" : "crash");
     updatePauseButton();
     renderHud();
   }
@@ -353,10 +412,14 @@
   function createViewState() {
     return {
       elapsedMs,
+      endReason,
       finalTimeMs,
       gameState,
+      gameEnded,
       message,
       paused,
+      remainingMs: remainingMs(),
+      score,
       speedMultiplierValue: speedMultiplier(),
       speedStack,
       tuning,
@@ -415,6 +478,10 @@
   });
 
   pauseButton.addEventListener("click", togglePause);
+  deathButton.addEventListener("click", () => {
+    audio.ensureAudio();
+    endGame("death");
+  });
   restartButton.addEventListener("click", resetGame);
 
   resetGame();

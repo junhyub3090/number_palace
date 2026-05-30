@@ -427,11 +427,11 @@
       ctx.font = "900 18px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(`Guess ${snapshot.gameState.history.length + 1}`, 34, 40);
+      ctx.fillText(`Set ${snapshot.score + 1} · Guess ${snapshot.gameState.history.length + 1}`, 34, 40);
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "800 15px Inter, system-ui, sans-serif";
       ctx.fillText(
-        `${formatTime(snapshot.elapsedMs)}  ·  Speed x${snapshot.speedMultiplierValue.toFixed(2)}  ·  Boost ${snapshot.speedStack}`,
+        `${formatTime(snapshot.remainingMs)}  ·  Speed x${snapshot.speedMultiplierValue.toFixed(2)}  ·  Boost ${snapshot.speedStack}`,
         34,
         65,
       );
@@ -455,17 +455,21 @@
         ctx.restore();
       }
 
-      if (snapshot.paused && !snapshot.gameState.solved) {
-        drawEndOverlay("일시정지", "P 또는 버튼으로 재개", "#6ba8ff");
+      if (snapshot.gameEnded) {
+        const title = snapshot.endReason === "time" ? "시간 종료" : "게임 종료";
+        drawEndOverlay(title, `${snapshot.score} SET`, snapshot.endReason === "time" ? "#f1d35b" : "#ff6f61");
+        ctx.fillStyle = "#4ac7a5";
+        ctx.font = "850 24px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`플레이 시간 ${formatTime(snapshot.finalTimeMs)}`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
         return;
       }
 
-      if (!snapshot.gameState.solved) return;
-
-      drawEndOverlay("정답!", snapshot.gameState.secret.join(""), "#f1d35b");
-      ctx.fillStyle = "#4ac7a5";
-      ctx.font = "850 26px Inter, system-ui, sans-serif";
-      ctx.fillText(`걸린 시간 ${formatTime(snapshot.finalTimeMs)}`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
+      if (snapshot.paused) {
+        drawEndOverlay("일시정지", "P 또는 버튼으로 재개", "#6ba8ff");
+        return;
+      }
     }
 
     function drawPickTray(snapshot) {
@@ -523,13 +527,19 @@
     }
 
     function revealMatchedDigits(guess, secret) {
-      const used = new Set();
+      const remaining = new Map();
+
+      secret.forEach((digit) => {
+        remaining.set(digit, (remaining.get(digit) || 0) + 1);
+      });
+
       return guess.map((digit) => {
-        if (!secret.includes(digit) || used.has(digit)) {
+        const count = remaining.get(digit) || 0;
+        if (count <= 0) {
           return null;
         }
 
-        used.add(digit);
+        remaining.set(digit, count - 1);
         return digit;
       });
     }

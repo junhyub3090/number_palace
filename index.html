@@ -39,6 +39,7 @@
           <button id="lobbyButton" type="button"
             style="background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px 11px; font-size: 14px; font-weight: 900; flex: 0 0 auto;">로비</button>
           <button id="pauseButton" type="button">정지</button>
+          <button id="deathButton" type="button">죽음</button>
           <button id="restartButton" type="button">새 게임</button>
         </div>
       </div>
@@ -51,16 +52,20 @@
             <strong id="timeValue">00:00.0</strong>
           </div>
           <div class="stat-card">
+            <span>남은시간</span>
+            <strong id="remainingTimeValue">05:00.0</strong>
+          </div>
+          <div class="stat-card">
+            <span>세트</span>
+            <strong id="scoreValue">0</strong>
+          </div>
+          <div class="stat-card">
             <span>부스트</span>
             <strong id="boostValue">0</strong>
           </div>
           <div class="stat-card">
             <span>현재속도</span>
             <strong id="speedValue">x1.00</strong>
-          </div>
-          <div class="stat-card">
-            <span>클리어</span>
-            <strong id="finalTimeValue">-</strong>
           </div>
         </div>
       </section>
@@ -83,9 +88,28 @@
         </div>
         <div class="qa-grid">
           <label>
+            <span>난이도</span>
+            <select id="qaDifficulty">
+              <option value="5">Easy 1-5</option>
+              <option value="7" selected>Normal 1-7</option>
+              <option value="9">Hard 1-9</option>
+            </select>
+            <strong id="qaDifficultyValue">1-7</strong>
+          </label>
+          <label>
+            <span>중복</span>
+            <input id="qaAllowDuplicates" type="checkbox" />
+            <strong id="qaAllowDuplicatesValue">OFF</strong>
+          </label>
+          <label>
+            <span>제한시간</span>
+            <input id="qaTimeLimit" type="range" min="60" max="600" step="30" value="300" />
+            <strong id="qaTimeLimitValue">5:00</strong>
+          </label>
+          <label>
             <span>낙하속도</span>
-            <input id="qaBaseSpeed" type="range" min="140" max="460" value="235" />
-            <strong id="qaBaseSpeedValue">235</strong>
+            <input id="qaBaseSpeed" type="range" min="140" max="460" value="255" />
+            <strong id="qaBaseSpeedValue">255</strong>
           </label>
           <label>
             <span>빈칸 가속</span>

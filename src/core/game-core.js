@@ -22,21 +22,66 @@
     return picked;
   }
 
-  function createSecret(rng) {
-    return pickDistinct(DIGITS, 3, rng || Math.random);
+  function normalizeGenerationOptions(options) {
+    if (typeof options === "function") {
+      return {
+        allowDuplicates: false,
+        digitMax: 9,
+        rng: options,
+      };
+    }
+
+    const settings = options || {};
+    return {
+      allowDuplicates: Boolean(settings.allowDuplicates),
+      digitMax: Number.isFinite(settings.digitMax) ? settings.digitMax : 9,
+      rng: settings.rng || Math.random,
+    };
   }
 
-  function createWave(rng, excludedDigits) {
-    const random = rng || Math.random;
-    const excluded = new Set(excludedDigits || []);
-    let pool = DIGITS.filter((digit) => !excluded.has(digit));
+  function digitPool(digitMax) {
+    return DIGITS.filter((digit) => digit <= digitMax);
+  }
 
-    if (pool.length < 3) {
-      pool = DIGITS.slice();
+  function pickDigits(pool, count, rng, allowDuplicates) {
+    if (!allowDuplicates) {
+      return pickDistinct(pool, count, rng);
+    }
+
+    const picked = [];
+    for (let index = 0; index < count; index += 1) {
+      picked.push(pool[randomIndex(rng, pool.length)]);
+    }
+
+    return picked;
+  }
+
+  function createSecret(options) {
+    const settings = normalizeGenerationOptions(options);
+    return pickDigits(
+      digitPool(settings.digitMax),
+      3,
+      settings.rng,
+      settings.allowDuplicates,
+    );
+  }
+
+  function createWave(rng, excludedDigits, options) {
+    const settings = normalizeGenerationOptions({
+      ...(options || {}),
+      rng: rng || Math.random,
+    });
+    const random = settings.rng;
+    const excluded = new Set(excludedDigits || []);
+    const fullPool = digitPool(settings.digitMax);
+    let pool = fullPool.filter((digit) => !excluded.has(digit));
+
+    if (pool.length < (settings.allowDuplicates ? 1 : 3)) {
+      pool = fullPool.slice();
     }
 
     const emptyLane = randomIndex(random, 4);
-    const digits = pickDistinct(pool, 3, random);
+    const digits = pickDigits(pool, 3, random, settings.allowDuplicates);
     let digitIndex = 0;
 
     return {
@@ -56,11 +101,16 @@
 
   function scoreGuess(secret, guess) {
     let strikes = 0;
-    const matchedDigits = new Set();
+    const remaining = new Map();
+
+    secret.forEach((digit) => {
+      remaining.set(digit, (remaining.get(digit) || 0) + 1);
+    });
 
     guess.forEach((digit) => {
-      if (secret.includes(digit) && !matchedDigits.has(digit)) {
-        matchedDigits.add(digit);
+      const count = remaining.get(digit) || 0;
+      if (count > 0) {
+        remaining.set(digit, count - 1);
         strikes += 1;
       }
     });
@@ -85,7 +135,7 @@
     const settings = options || {};
     const secret = settings.secret
       ? settings.secret.slice(0, 3)
-      : createSecret(settings.rng || Math.random);
+      : createSecret(settings);
 
     return {
       secret,
@@ -126,6 +176,7 @@
     createGameState,
     createSecret,
     createWave,
+    digitPool,
     scoreGuess,
     sortHistoryForDisplay,
   };

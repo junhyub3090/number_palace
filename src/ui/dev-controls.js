@@ -1,6 +1,34 @@
 (function attachDevControls(global) {
+  function formatSeconds(value) {
+    const safeValue = Math.max(0, Number(value) || 0);
+    const minutes = Math.floor(safeValue / 60);
+    const seconds = Math.round(safeValue % 60);
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  }
+
   function createDevControls(documentRef, defaults, onChange) {
     const controls = [
+      {
+        id: "qaDifficulty",
+        key: "digitMax",
+        labelId: "qaDifficultyValue",
+        normalize: (value) => Number(value),
+        format: (value) => `1-${value}`,
+      },
+      {
+        id: "qaAllowDuplicates",
+        key: "allowDuplicates",
+        labelId: "qaAllowDuplicatesValue",
+        normalize: (value) => Boolean(value),
+        format: (value) => (value ? "ON" : "OFF"),
+      },
+      {
+        id: "qaTimeLimit",
+        key: "timeLimitSeconds",
+        labelId: "qaTimeLimitValue",
+        normalize: (value) => Number(value),
+        format: formatSeconds,
+      },
       {
         id: "qaBaseSpeed",
         key: "baseWaveSpeed",
@@ -68,12 +96,13 @@
       if (!input || !label) return;
 
       function commit() {
-        values[control.key] = control.normalize(input.value);
+        const rawValue = input.type === "checkbox" ? input.checked : input.value;
+        values[control.key] = control.normalize(rawValue);
         label.textContent = control.format(values[control.key]);
         onChange({ ...values });
       }
 
-      input.addEventListener("input", commit);
+      input.addEventListener(input.type === "checkbox" ? "change" : "input", commit);
       commit();
     });
 

@@ -5,10 +5,11 @@
       historyList: documentRef.getElementById("historyList"),
       messageBox: documentRef.getElementById("messageBox"),
       timeValue: documentRef.getElementById("timeValue"),
+      remainingTimeValue: documentRef.getElementById("remainingTimeValue"),
+      scoreValue: documentRef.getElementById("scoreValue"),
       boostValue: documentRef.getElementById("boostValue"),
       speedValue: documentRef.getElementById("speedValue"),
       devSecretValue: documentRef.getElementById("devSecretValue"),
-      finalTimeValue: documentRef.getElementById("finalTimeValue"),
     };
   }
 
@@ -22,10 +23,10 @@
 
   function renderLiveStats(elements, stats) {
     elements.timeValue.textContent = formatTime(stats.elapsedMs);
+    elements.remainingTimeValue.textContent = formatTime(stats.remainingMs);
+    elements.scoreValue.textContent = String(stats.score);
     elements.boostValue.textContent = String(stats.speedStack);
     elements.speedValue.textContent = `x${stats.speedMultiplierValue.toFixed(2)}`;
-    elements.finalTimeValue.textContent =
-      stats.finalTimeMs === null ? "-" : formatTime(stats.finalTimeMs);
   }
 
   function renderHud(elements, core, viewState) {
@@ -65,7 +66,11 @@
 
     core.sortHistoryForDisplay(history).forEach((entry) => {
       const item = document.createElement("li");
-      const guess = entry.guess.map((digit) => `<span>${digit}</span>`).join("");
+      const guess = entry.guess
+        .slice()
+        .sort((left, right) => left - right)
+        .map((digit) => `<span>${digit}</span>`)
+        .join("");
       item.innerHTML = `<span class="history-guess">${guess}</span><span class="history-score">${entry.strikes}S</span>`;
       container.appendChild(item);
     });

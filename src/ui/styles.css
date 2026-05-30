@@ -136,6 +136,7 @@ h2 {
 }
 
 #pauseButton,
+#deathButton,
 #restartButton {
   flex: 0 0 auto;
   padding: 8px 11px;
@@ -147,6 +148,11 @@ h2 {
   background: var(--panel-strong);
   border: 1px solid var(--line);
   color: var(--text);
+}
+
+#deathButton {
+  background: #ff6f61;
+  color: #210908;
 }
 
 #restartButton {
@@ -331,6 +337,22 @@ h2 {
 .qa-grid input {
   width: 100%;
   accent-color: var(--accent-2);
+}
+
+.qa-grid select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+}
+
+.qa-grid input[type="checkbox"] {
+  width: auto;
+  justify-self: start;
 }
 
 .qa-grid strong {

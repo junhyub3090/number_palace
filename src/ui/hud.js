@@ -7,6 +7,7 @@
       timeValue: documentRef.getElementById("timeValue"),
       boostValue: documentRef.getElementById("boostValue"),
       speedValue: documentRef.getElementById("speedValue"),
+      devSecretValue: documentRef.getElementById("devSecretValue"),
       finalTimeValue: documentRef.getElementById("finalTimeValue"),
     };
   }
@@ -31,7 +32,13 @@
     renderLiveStats(elements, viewState);
     renderGuessSlots(elements.guessSlots, viewState.gameState.currentGuess);
     renderHistory(elements.historyList, core, viewState.gameState.history);
+    renderDevSecret(elements.devSecretValue, viewState.gameState.secret);
     elements.messageBox.textContent = viewState.message;
+  }
+
+  function renderDevSecret(container, secret) {
+    if (!container) return;
+    container.textContent = secret.join("");
   }
 
   function renderGuessSlots(container, currentGuess) {

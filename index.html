@@ -76,6 +76,10 @@
 
       <details class="qa-panel" open>
         <summary>QA 조절</summary>
+        <div class="dev-secret">
+          <span>정답</span>
+          <strong id="devSecretValue">...</strong>
+        </div>
         <div class="qa-grid">
           <label>
             <span>낙하속도</span>
@@ -124,7 +128,14 @@
     </aside>
   </main>
 
-  <script type="module" src="src/firebase/firebaseApi.js"></script>
+  <script defer src="src/core/game-core.js"></script>
+  <script defer src="src/game/config.js"></script>
+  <script defer src="src/game/audio.js"></script>
+  <script defer src="src/game/effects.js"></script>
+  <script defer src="src/ui/hud.js"></script>
+  <script defer src="src/ui/dev-controls.js"></script>
+  <script defer src="src/rendering/canvas-renderer.js"></script>
+  <script defer src="src/game/game.js"></script>
   <script type="module">
     import FirebaseApi from './src/firebase/firebaseApi.js';
 
@@ -147,14 +158,6 @@
       });
     }
   </script>
-  <script defer src="src/core/game-core.js"></script>
-  <script defer src="src/game/config.js"></script>
-  <script defer src="src/game/audio.js"></script>
-  <script defer src="src/game/effects.js"></script>
-  <script defer src="src/ui/hud.js"></script>
-  <script defer src="src/ui/dev-controls.js"></script>
-  <script defer src="src/rendering/canvas-renderer.js"></script>
-  <script defer src="src/game/game.js"></script>
 </body>
 
 </html>

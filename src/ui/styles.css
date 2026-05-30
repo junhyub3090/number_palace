@@ -115,14 +115,11 @@ button {
 }
 
 .play-stats {
-  top: 16px;
-  left: 16px;
-  width: 214px;
-  padding: 10px;
+  display: none;
 }
 
 .history-overlay {
-  top: 70px;
+  top: 166px;
   right: 16px;
   width: 252px;
   max-height: min(42vh, 320px);
@@ -131,7 +128,7 @@ button {
 
 .dev-toggle {
   position: fixed;
-  top: 16px;
+  top: 96px;
   right: 16px;
   z-index: 21;
   width: 42px;
@@ -153,11 +150,11 @@ button {
 
 .dev-drawer {
   position: fixed;
-  top: 66px;
+  top: 146px;
   right: 16px;
   z-index: 20;
   width: min(340px, calc(100vw - 32px));
-  max-height: calc(100vh - 82px);
+  max-height: calc(100vh - 162px);
   padding: 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
@@ -538,11 +535,7 @@ h2 {
 
 @media (max-width: 1120px) {
   .play-stats {
-    top: 10px;
-    left: 10px;
-    right: 58px;
-    width: auto;
-    padding: 8px;
+    display: none;
   }
 
   .play-stats .stat-grid {
@@ -563,7 +556,7 @@ h2 {
   }
 
   .history-overlay {
-    top: 92px;
+    top: 166px;
     right: 10px;
     width: min(210px, calc(48vw - 12px));
     max-height: 26vh;
@@ -581,7 +574,7 @@ h2 {
   }
 
   .play-stats {
-    right: 56px;
+    display: none;
   }
 
   .play-stats .stat-grid {
@@ -589,7 +582,7 @@ h2 {
   }
 
   .history-overlay {
-    top: 142px;
+    top: 166px;
     width: 168px;
   }
 

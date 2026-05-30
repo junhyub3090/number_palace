@@ -505,12 +505,23 @@
       const laneItem = wave.items.find((item) => item.lane === impact.lane);
       const color = laneItem && laneItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
       const x = laneCenter(impact.lane);
-      const late = clamp01((progress - 0.52) / 0.48);
+      const late = clamp01((progress - 0.45) / 0.55);
       const snap = easeOutCubic(progress);
       const ring = Math.sin(late * Math.PI);
 
       ctx.save();
       ctx.lineCap = "round";
+
+      ctx.globalAlpha = 0.16 + snap * 0.14;
+      ctx.fillStyle = color;
+      roundedRect(
+        x - config.LANE_WIDTH / 2 + 12,
+        Math.max(40, wave.y - itemSize * 1.25),
+        config.LANE_WIDTH - 24,
+        Math.max(32, config.CATCH_Y - wave.y + itemSize * 0.78),
+        8,
+      );
+      ctx.fill();
 
       for (let lane = 0; lane < config.LANES; lane += 1) {
         const laneX = laneCenter(lane);

@@ -189,20 +189,20 @@
     wave.dashImpact = {
       lane: playerLane,
       startTime: now,
-      duration: 0.18,
+      duration: 0.24,
       startY: wave.y,
       targetY: config.CATCH_Y,
       resolved: false,
     };
-    shake(6);
-    flash("rgba(107,168,255,0.16)", 0.26);
+    shake(8);
+    flash("rgba(107,168,255,0.2)", 0.3);
     effects.flashLane(playerLane, "#6ba8ff", 0.42);
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 92,
       "DASH",
       "#6ba8ff",
-      0.62,
+      0.78,
     );
     audio.playEffect("dash");
     message = item && item.kind === "digit"

@@ -189,11 +189,17 @@
     wave.dashImpact = {
       lane: playerLane,
       startTime: now,
-      duration: 0.24,
+      duration: 0.22,
       startY: wave.y,
-      targetY: config.CATCH_Y,
+      impactY: config.CATCH_Y,
+      endY: config.HEIGHT + 150,
       resolved: false,
     };
+    wave.dashImpact.collisionProgress = Math.max(
+      0,
+      Math.min(1, (wave.dashImpact.impactY - wave.dashImpact.startY) /
+        (wave.dashImpact.endY - wave.dashImpact.startY)),
+    );
     shake(8);
     flash("rgba(107,168,255,0.2)", 0.3);
     effects.flashLane(playerLane, "#6ba8ff", 0.42);
@@ -216,15 +222,21 @@
 
     const impact = wave.dashImpact;
     const progress = Math.min(1, (timestamp - impact.startTime) / (impact.duration * 1000));
-    const eased = 1 - Math.pow(1 - progress, 3);
 
-    wave.y = impact.startY + (impact.targetY - impact.startY) * eased;
+    wave.y = impact.startY + (impact.endY - impact.startY) * progress;
 
-    if (progress < 1 || impact.resolved) return;
+    if (!impact.resolved && progress >= impact.collisionProgress) {
+      impact.resolved = true;
+      wave.y = impact.impactY;
+      resolveDashImpact();
+    }
 
-    impact.resolved = true;
-    wave.y = impact.targetY;
-    resolveDashImpact();
+    if (progress < 1) return;
+
+    if (!gameEnded) {
+      advanceWave();
+      renderHud();
+    }
   }
 
   function resolveDashImpact() {
@@ -242,15 +254,11 @@
 
     if (!item || item.kind === "empty") {
       boostFromEmpty("dash");
-      advanceWave();
       renderHud();
       return;
     }
 
-    const completedSet = collectNumber(item, "dash");
-    if (!completedSet && !gameEnded) {
-      advanceWave();
-    }
+    collectNumber(item, "dash", { deferAdvance: true });
     renderHud();
   }
 
@@ -297,7 +305,7 @@
     audio.playEffect("boost");
   }
 
-  function collectNumber(item, source) {
+  function collectNumber(item, source, options = {}) {
     const before = gameState.history.length;
     const x = renderer.laneCenter(item.lane);
     combo += 1;
@@ -324,7 +332,7 @@
     }
 
     if (gameState.solved) {
-      completeSet();
+      completeSet({ deferAdvance: Boolean(options.deferAdvance) });
       return true;
     }
 
@@ -369,7 +377,7 @@
     });
   }
 
-  function completeSet() {
+  function completeSet(options = {}) {
     const solvedSecret = gameState.secret.join("");
     const guessCount = gameState.history.length;
     lastSetPoints = setScoreForGuessCount(guessCount);
@@ -394,7 +402,9 @@
     combo = 0;
     hintProgress = 0;
     excludedHintDigits = [];
-    advanceWave();
+    if (!options.deferAdvance) {
+      advanceWave();
+    }
   }
 
   function handleCatch(now) {

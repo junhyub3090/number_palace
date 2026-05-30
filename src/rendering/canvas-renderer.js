@@ -427,7 +427,10 @@
       const bottom = config.CATCH_Y + config.CATCH_WINDOW;
       const impact = wave.dashImpact || null;
       const impactProgress = dashImpactProgress(snapshot, impact);
-      const impactEase = easeOutCubic(impactProgress);
+      const collisionProgress = impact ? impact.collisionProgress || 0.5 : 0;
+      const afterImpactProgress = impact
+        ? clamp01((impactProgress - collisionProgress) / Math.max(0.001, 1 - collisionProgress))
+        : 0;
 
       if (impact) {
         drawDashImpactCue(wave, impact, impactProgress, itemSize);
@@ -436,20 +439,27 @@
       wave.items.forEach((item) => {
         const activeLane = item.lane === snapshot.playerLane;
         const impactActive = impact && item.lane === impact.lane;
+        const impactHit = Boolean(impactActive && impactProgress >= collisionProgress);
         const impactAlpha = impact
-          ? impactActive
-            ? 1
-            : 1 - impactEase * 0.42
+          ? impactActive && impactHit
+            ? Math.max(0, 1 - afterImpactProgress * 3.2)
+            : impactActive
+              ? 1
+              : 1 - afterImpactProgress * 0.2
           : 1;
         const impactYOffset = impact
           ? impactActive
-            ? -Math.sin(impactProgress * Math.PI) * 8
-            : impactEase * 28
+            ? impactHit
+              ? config.CATCH_Y - wave.y
+              : 0
+            : 0
           : 0;
         const impactScale = impact
           ? impactActive
-            ? 1 + Math.sin(impactProgress * Math.PI) * 0.14
-            : 1 - impactEase * 0.035
+            ? impactHit
+              ? 1 + afterImpactProgress * 0.42
+              : 1 + Math.sin(impactProgress * Math.PI) * 0.08
+            : 1
           : 1;
         const nearCatch =
           activeLane &&
@@ -461,7 +471,11 @@
           !wave.handled &&
           wave.y >= top &&
           wave.y <= bottom;
-        const inDashImpact = Boolean(impactActive && impactProgress > 0.58);
+        const inDashImpact = Boolean(
+          impactActive &&
+          impactProgress >= Math.max(0, collisionProgress - 0.08) &&
+          afterImpactProgress < 0.45,
+        );
         const tilePulse = nearCatch ? 1 + Math.sin(snapshot.timestamp / 58) * 0.035 : 1;
         const itemY = wave.y + impactYOffset;
 
@@ -505,20 +519,20 @@
       const laneItem = wave.items.find((item) => item.lane === impact.lane);
       const color = laneItem && laneItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
       const x = laneCenter(impact.lane);
-      const late = clamp01((progress - 0.45) / 0.55);
-      const snap = easeOutCubic(progress);
+      const collisionProgress = impact.collisionProgress || 0.5;
+      const late = clamp01((progress - collisionProgress) / Math.max(0.001, 1 - collisionProgress));
       const ring = Math.sin(late * Math.PI);
 
       ctx.save();
       ctx.lineCap = "round";
 
-      ctx.globalAlpha = 0.16 + snap * 0.14;
+      ctx.globalAlpha = 0.08 + progress * 0.12;
       ctx.fillStyle = color;
       roundedRect(
         x - config.LANE_WIDTH / 2 + 12,
         Math.max(40, wave.y - itemSize * 1.25),
         config.LANE_WIDTH - 24,
-        Math.max(32, config.CATCH_Y - wave.y + itemSize * 0.78),
+        Math.max(28, Math.min(180, config.CATCH_Y - wave.y + itemSize * 0.9)),
         8,
       );
       ctx.fill();
@@ -526,17 +540,17 @@
       for (let lane = 0; lane < config.LANES; lane += 1) {
         const laneX = laneCenter(lane);
         const laneOffset = (lane - 1.5) * 4;
-        ctx.globalAlpha = 0.08 + snap * 0.12;
+        ctx.globalAlpha = lane === impact.lane ? 0.2 + progress * 0.18 : 0.08 + progress * 0.08;
         ctx.strokeStyle = lane === impact.lane ? color : "rgba(242,242,234,0.42)";
         ctx.lineWidth = lane === impact.lane ? 3 : 2;
         ctx.beginPath();
-        ctx.moveTo(laneX - 22 + laneOffset, Math.max(44, wave.y - itemSize * 1.35));
-        ctx.lineTo(laneX + 8 + laneOffset, config.CATCH_Y - 28);
+        ctx.moveTo(laneX - 22 + laneOffset, Math.max(44, wave.y - itemSize * 1.2));
+        ctx.lineTo(laneX + 8 + laneOffset, Math.min(config.HEIGHT + 80, wave.y + itemSize * 1.8));
         ctx.stroke();
       }
 
       if (late > 0) {
-        ctx.globalAlpha = 0.26 * late;
+        ctx.globalAlpha = 0.34 * ring;
         ctx.fillStyle = color;
         roundedRect(
           x - config.LANE_WIDTH / 2 + 18,

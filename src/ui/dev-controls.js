@@ -16,6 +16,13 @@
         format: (value) => value.toFixed(2),
       },
       {
+        id: "qaSpeedCap",
+        key: "speedCap",
+        labelId: "qaSpeedCapValue",
+        normalize: (value) => Number(value) / 100,
+        format: (value) => value.toFixed(2),
+      },
+      {
         id: "qaItemSize",
         key: "itemSize",
         labelId: "qaItemSizeValue",

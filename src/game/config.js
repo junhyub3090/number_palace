@@ -15,16 +15,16 @@
     FLIP_DURATION: 540,
     FLIP_COOLDOWN: 610,
     MAX_SPEED_STACK: 8,
-    BASE_WAVE_SPEED: 220,
+    BASE_WAVE_SPEED: 235,
     DEFAULT_TUNING: {
-      baseWaveSpeed: 220,
-      boostGain: 0.08,
+      baseWaveSpeed: 235,
+      boostGain: 0.11,
       boostMotion: 0.5,
       effectIntensity: 0.55,
       itemSize: 60,
       playerScale: 0.9,
       shakeIntensity: 0.45,
-      speedCap: 2.25,
+      speedCap: 3.1,
     },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

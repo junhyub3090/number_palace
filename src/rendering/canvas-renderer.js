@@ -206,6 +206,7 @@
       ctx.rect(0, 0, config.WIDTH, config.HEIGHT);
       ctx.clip();
       drawTrack(snapshot);
+      drawDashTrails(snapshot.effects.dashTrails || [], snapshot);
       drawWave(snapshot);
       drawPlayer(snapshot);
       drawParticles(snapshot.effects.particles);
@@ -494,18 +495,6 @@
           return;
         }
 
-        if (impact) {
-          drawDashBoxTrace(
-            itemX,
-            itemY,
-            itemSize,
-            item.kind === "empty" ? "#4ac7a5" : digitColor(item.value),
-            impactActive,
-            impactHit ? afterImpactProgress : preImpactProgress,
-            impactAlpha,
-          );
-        }
-
         if (item.kind === "empty") {
           drawEmptyGate(
             item.lane,
@@ -542,22 +531,87 @@
       });
     }
 
-    function drawDashBoxTrace(x, y, itemSize, color, active, progress, alpha) {
-      const fade = Math.max(0, Math.min(1, alpha));
-      const segmentCount = active ? 7 : 5;
-      const gap = itemSize * 0.42;
-      const traceSize = itemSize * (active ? 0.86 : 0.72);
-      const baseAlpha = active ? 0.26 : 0.13;
-      const drift = progress * itemSize * 0.55;
+    function drawDashTrails(trails, snapshot) {
+      if (!trails.length) return;
+
+      trails.forEach((trail) => {
+        const durationMs = Math.max(1, (trail.duration || 0.12) * 1000);
+        const runProgress = easeOutCubic((snapshot.timestamp - trail.startTime) / durationMs);
+        const lifeProgress = clamp01(trail.life / trail.maxLife);
+        const grow = Math.max(0.12, runProgress);
+        const fade = Math.min(1, lifeProgress * 1.25);
+        const itemSize = trail.itemSize || snapshot.tuning.itemSize;
+        const items = (trail.items || []).slice().sort((left, right) => {
+          if (left.active === right.active) return left.lane - right.lane;
+          return left.active ? 1 : -1;
+        });
+
+        items.forEach((item) => {
+          const color = item.kind === "empty" ? "#4ac7a5" : digitColor(item.value);
+          drawPersistentDashTrail(item, itemSize, color, grow, fade);
+        });
+      });
+    }
+
+    function colorWithAlpha(color, alpha) {
+      const hex = String(color || "").replace("#", "");
+
+      if (hex.length !== 6) {
+        return `rgba(242,242,234,${alpha})`;
+      }
+
+      const red = parseInt(hex.slice(0, 2), 16);
+      const green = parseInt(hex.slice(2, 4), 16);
+      const blue = parseInt(hex.slice(4, 6), 16);
+
+      return `rgba(${red},${green},${blue},${alpha})`;
+    }
+
+    function drawPersistentDashTrail(item, itemSize, color, grow, fade) {
+      const x = laneCenter(item.lane);
+      const active = Boolean(item.active);
+      const startY = item.startY - itemSize * 0.28;
+      const targetY = item.startY + (item.endY - item.startY) * grow;
+      const top = Math.min(startY, targetY);
+      const bottom = Math.max(startY, targetY);
+      const length = bottom - top;
+
+      if (length < 10 || fade <= 0.01) return;
+
+      const width = itemSize * (active ? 0.82 : 0.62);
+      const glowWidth = width * (active ? 1.28 : 1.1);
+      const baseAlpha = (active ? 0.38 : 0.2) * fade;
+      const stampCount = Math.max(4, Math.min(18, Math.floor(length / (itemSize * 0.42))));
+      const edgePad = itemSize * 0.08;
 
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
 
-      for (let index = 1; index <= segmentCount; index += 1) {
-        const depth = index / segmentCount;
-        const size = traceSize * (1 - depth * 0.42);
-        const segmentY = y - index * gap - drift;
-        const opacity = baseAlpha * (1 - depth * 0.78) * fade;
+      const glow = ctx.createLinearGradient(x, top, x, bottom);
+      glow.addColorStop(0, colorWithAlpha(color, 0));
+      glow.addColorStop(0.2, colorWithAlpha(color, baseAlpha * 0.32));
+      glow.addColorStop(0.72, colorWithAlpha(color, baseAlpha));
+      glow.addColorStop(1, active
+        ? "rgba(242,242,234,0.44)"
+        : colorWithAlpha(color, baseAlpha * 0.64));
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = glow;
+      roundedRect(
+        x - glowWidth / 2,
+        top,
+        glowWidth,
+        length,
+        Math.max(7, itemSize * 0.16),
+      );
+      ctx.fill();
+
+      for (let index = 0; index < stampCount; index += 1) {
+        const depth = stampCount === 1 ? 1 : index / (stampCount - 1);
+        const easeDepth = easeOutCubic(depth);
+        const y = top + length * easeDepth;
+        const size = itemSize * (0.36 + easeDepth * (active ? 0.38 : 0.26));
+        const opacity = baseAlpha * (0.16 + easeDepth * 0.48) * (1 - depth * 0.22);
 
         if (opacity <= 0.01) continue;
 
@@ -565,36 +619,23 @@
         ctx.fillStyle = color;
         roundedRect(
           x - size / 2,
-          segmentY - size / 2,
+          y - size / 2,
           size,
           size,
-          Math.max(4, size * 0.16),
+          Math.max(5, size * 0.18),
         );
         ctx.fill();
-
-        ctx.globalAlpha = opacity * 0.7;
-        ctx.strokeStyle = active ? "rgba(242,242,234,0.55)" : "rgba(242,242,234,0.25)";
-        ctx.lineWidth = active ? 2 : 1;
-        roundedRect(
-          x - size / 2,
-          segmentY - size / 2,
-          size,
-          size,
-          Math.max(4, size * 0.16),
-        );
-        ctx.stroke();
       }
 
-      ctx.globalAlpha = (active ? 0.16 : 0.08) * fade;
-      ctx.fillStyle = color;
-      roundedRect(
-        x - traceSize * 0.52,
-        y - segmentCount * gap - traceSize * 0.2,
-        traceSize * 1.04,
-        segmentCount * gap,
-        8,
-      );
-      ctx.fill();
+      ctx.globalAlpha = active ? 0.42 * fade : 0.22 * fade;
+      ctx.strokeStyle = active ? "rgba(242,242,234,0.68)" : colorWithAlpha(color, 0.7);
+      ctx.lineWidth = active ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(x - width / 2 + edgePad, Math.max(top, bottom - itemSize * 1.2));
+      ctx.lineTo(x - width / 2 + edgePad, bottom);
+      ctx.moveTo(x + width / 2 - edgePad, Math.max(top, bottom - itemSize * 1.2));
+      ctx.lineTo(x + width / 2 - edgePad, bottom);
+      ctx.stroke();
 
       ctx.restore();
     }

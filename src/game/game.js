@@ -200,6 +200,22 @@
       Math.min(1, (wave.dashImpact.impactY - wave.dashImpact.startY) /
         (wave.dashImpact.endY - wave.dashImpact.startY)),
     );
+    effects.addDashTrail({
+      startTime: now,
+      duration: wave.dashImpact.duration,
+      itemSize: tuning.itemSize,
+      items: wave.items.map((candidate) => ({
+        lane: candidate.lane,
+        kind: candidate.kind,
+        value: candidate.value,
+        active: candidate.lane === playerLane,
+        startY: wave.dashImpact.startY,
+        endY: candidate.lane === playerLane
+          ? wave.dashImpact.impactY
+          : config.HEIGHT + 120,
+      })),
+      life: 0.7,
+    });
     shake(12);
     flash("rgba(107,168,255,0.3)", 0.46);
     effects.flashLane(playerLane, "#6ba8ff", 0.62);

@@ -4,6 +4,7 @@
     let floaters = [];
     let laneFlashes = [];
     let stars = [];
+    let dashTrails = [];
 
     function reset() {
       particles = [];
@@ -12,12 +13,24 @@
         alpha: 0,
         color: "#ffffff",
       }));
+      dashTrails = [];
       stars = Array.from({ length: 72 }, () => ({
         x: Math.random() * config.WIDTH,
         y: Math.random() * config.HEIGHT,
         speed: 75 + Math.random() * 190,
         size: 1 + Math.random() * 2.6,
       }));
+    }
+
+    function addDashTrail(trail) {
+      const life = trail.life || 0.68;
+
+      dashTrails.push({
+        ...trail,
+        elapsed: 0,
+        life,
+        maxLife: life,
+      });
     }
 
     function addFloater(x, y, text, color, life) {
@@ -78,6 +91,14 @@
       laneFlashes.forEach((laneFlash) => {
         laneFlash.alpha = Math.max(0, laneFlash.alpha - dt * 1.8);
       });
+
+      dashTrails = dashTrails
+        .map((trail) => ({
+          ...trail,
+          elapsed: trail.elapsed + dt,
+          life: trail.life - dt,
+        }))
+        .filter((trail) => trail.life > 0);
     }
 
     function updateStars(dt, speed, speedStack) {
@@ -97,6 +118,7 @@
         floaters,
         laneFlashes,
         stars,
+        dashTrails,
       };
     }
 
@@ -104,6 +126,7 @@
 
     return {
       addFloater,
+      addDashTrail,
       burst,
       flashLane,
       reset,

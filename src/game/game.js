@@ -33,7 +33,6 @@
   let combo;
   let lastGuessPulse;
   let paused;
-  let timedOut;
 
   window.RunningBaseballDevControls.createDevControls(
     document,
@@ -56,7 +55,6 @@
     elapsedMs = 0;
     finalTimeMs = null;
     paused = false;
-    timedOut = false;
     spawnCounter = 0;
     shakeAmount = 0;
     flashAmount = 0;
@@ -95,7 +93,7 @@
   }
 
   function moveLane(delta) {
-    if (gameState.solved || paused || timedOut) return;
+    if (gameState.solved || paused) return;
 
     const nextLane = Math.max(0, Math.min(config.LANES - 1, playerLane + delta));
     if (nextLane !== playerLane) {
@@ -112,7 +110,7 @@
   }
 
   function startFlip(now) {
-    if (gameState.solved || paused || timedOut || now - lastFlipAt < config.FLIP_COOLDOWN) return;
+    if (gameState.solved || paused || now - lastFlipAt < config.FLIP_COOLDOWN) return;
 
     audio.ensureAudio();
     flipUntil = now + config.FLIP_DURATION;
@@ -169,11 +167,11 @@
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 32,
-      "BOOST +1",
+      `BOOST ${speedStack}`,
       "#4ac7a5",
       1,
     );
-    message = "빈칸 부스트 +1";
+    message = `빈칸 부스트 ${speedStack}`;
     audio.playEffect("boost");
   }
 
@@ -243,12 +241,12 @@
       "#ff6f61",
       1.05,
     );
-    message = `${nextExcluded.join(", ")} 다음 제외 · 부스트 ${lost > 0 ? `-${lost}` : "유지"}`;
+    message = lost > 0 ? `박치기 · 부스트 -${lost}` : "박치기 · 부스트 유지";
     audio.playEffect("crash");
   }
 
   function handleCatch(now) {
-    if (paused || timedOut || !wave || wave.handled || Math.abs(wave.y - config.CATCH_Y) > 26) return;
+    if (paused || !wave || wave.handled || Math.abs(wave.y - config.CATCH_Y) > 26) return;
 
     const item = currentLaneItem();
     wave.handled = true;
@@ -298,17 +296,14 @@
     lastFrame = timestamp;
 
     if (!paused) {
-      if (!gameState.solved && !timedOut) {
+      if (!gameState.solved) {
         elapsedMs += dt * 1000;
-        if (elapsedMs >= tuning.timeLimitSeconds * 1000) {
-          handleTimeout();
-        }
       }
 
       const speed = speedMultiplier();
       effects.updateStars(dt, speed, speedStack);
 
-      if (!gameState.solved && !timedOut) {
+      if (!gameState.solved) {
         wave.y += wave.speed * speed * dt;
         handleCatch(timestamp);
 
@@ -329,7 +324,7 @@
   }
 
   function togglePause() {
-    if (gameState.solved || timedOut) return;
+    if (gameState.solved) return;
 
     paused = !paused;
     message = paused ? "일시정지" : "재개";
@@ -342,28 +337,15 @@
     pauseButton.setAttribute("aria-pressed", String(paused));
   }
 
-  function handleTimeout() {
-    timedOut = true;
-    elapsedMs = tuning.timeLimitSeconds * 1000;
-    finalTimeMs = elapsedMs;
-    message = "시간 종료. 새 게임으로 다시 도전!";
-    flash("rgba(255,111,97,0.28)", 0.55);
-    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#ff6f61", scaledEffectCount(32), 360);
-    audio.playEffect("crash");
-    renderHud();
-  }
-
   function createViewState() {
     return {
       elapsedMs,
       finalTimeMs,
       gameState,
       message,
-      nextExcluded,
       paused,
       speedMultiplier,
       speedStack,
-      timedOut,
       tuning,
     };
   }
@@ -392,11 +374,11 @@
   }
 
   window.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowLeft") {
+    if (event.key === "ArrowLeft" || event.code === "KeyA") {
       event.preventDefault();
       audio.ensureAudio();
       moveLane(-1);
-    } else if (event.key === "ArrowRight") {
+    } else if (event.key === "ArrowRight" || event.code === "KeyD") {
       event.preventDefault();
       audio.ensureAudio();
       moveLane(1);

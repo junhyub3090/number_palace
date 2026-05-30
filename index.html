@@ -35,7 +35,8 @@
           <h1>러닝 숫자야구</h1>
         </div>
         <div class="panel-actions">
-          <button id="lobbyButton" type="button" style="background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px 11px; font-size: 14px; font-weight: 900; flex: 0 0 auto;">로비</button>
+          <button id="lobbyButton" type="button"
+            style="background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px 11px; font-size: 14px; font-weight: 900; flex: 0 0 auto;">로비</button>
           <button id="pauseButton" type="button">정지</button>
           <button id="restartButton" type="button">새 게임</button>
         </div>
@@ -44,10 +45,6 @@
       <section class="status-block">
         <h2>플레이 상태</h2>
         <div class="stat-grid compact">
-          <div class="stat-card">
-            <span>남은시간</span>
-            <strong id="remainingTimeValue">01:30.0</strong>
-          </div>
           <div class="stat-card">
             <span>경과</span>
             <strong id="timeValue">00:00.0</strong>
@@ -66,11 +63,6 @@
       <section class="status-block">
         <h2>현재 추측</h2>
         <div id="guessSlots" class="guess-slots" aria-live="polite"></div>
-      </section>
-
-      <section class="status-block">
-        <h2>다음 제외</h2>
-        <div id="excludedDigits" class="excluded-digits" aria-live="polite"></div>
       </section>
 
       <section class="status-block">
@@ -112,9 +104,9 @@
             <strong id="qaShakeIntensityValue">0.45</strong>
           </label>
           <label>
-            <span>제한시간</span>
-            <input id="qaTimeLimit" type="range" min="30" max="180" value="90" />
-            <strong id="qaTimeLimitValue">90s</strong>
+            <span>속도감</span>
+            <input id="qaBoostMotion" type="range" min="0" max="100" value="50" />
+            <strong id="qaBoostMotionValue">0.50</strong>
           </label>
         </div>
       </details>
@@ -126,7 +118,7 @@
   <script type="module" src="src/firebase/firebaseApi.js"></script>
   <script type="module">
     import FirebaseApi from './src/firebase/firebaseApi.js';
-    
+
     FirebaseApi.onAuthStateChanged(async (user) => {
       if (!user) {
         // 로그인 안 되어있으면 게스트 모드로 자동 로그인

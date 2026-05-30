@@ -44,11 +44,11 @@
         format: (value) => value.toFixed(2),
       },
       {
-        id: "qaTimeLimit",
-        key: "timeLimitSeconds",
-        labelId: "qaTimeLimitValue",
-        normalize: (value) => Number(value),
-        format: (value) => `${Math.round(value)}s`,
+        id: "qaBoostMotion",
+        key: "boostMotion",
+        labelId: "qaBoostMotionValue",
+        normalize: (value) => Number(value) / 100,
+        format: (value) => value.toFixed(2),
       },
     ];
 

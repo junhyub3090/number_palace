@@ -2,10 +2,8 @@
   function getHudElements(documentRef) {
     return {
       guessSlots: documentRef.getElementById("guessSlots"),
-      excludedDigits: documentRef.getElementById("excludedDigits"),
       historyList: documentRef.getElementById("historyList"),
       messageBox: documentRef.getElementById("messageBox"),
-      remainingTimeValue: documentRef.getElementById("remainingTimeValue"),
       timeValue: documentRef.getElementById("timeValue"),
       boostValue: documentRef.getElementById("boostValue"),
       finalTimeValue: documentRef.getElementById("finalTimeValue"),
@@ -21,8 +19,6 @@
   }
 
   function renderLiveStats(elements, stats) {
-    const remainingMs = Math.max(0, stats.tuning.timeLimitSeconds * 1000 - stats.elapsedMs);
-    elements.remainingTimeValue.textContent = formatTime(remainingMs);
     elements.timeValue.textContent = formatTime(stats.elapsedMs);
     elements.boostValue.textContent = String(stats.speedStack);
     elements.finalTimeValue.textContent =
@@ -32,7 +28,6 @@
   function renderHud(elements, core, viewState) {
     renderLiveStats(elements, viewState);
     renderGuessSlots(elements.guessSlots, viewState.gameState.currentGuess);
-    renderExcludedDigits(elements.excludedDigits, viewState.nextExcluded);
     renderHistory(elements.historyList, core, viewState.gameState.history);
     elements.messageBox.textContent = viewState.message;
   }
@@ -45,17 +40,6 @@
       slot.className = `slot${currentGuess[i] ? "" : " empty"}`;
       slot.textContent = currentGuess[i] || ".";
       container.appendChild(slot);
-    }
-  }
-
-  function renderExcludedDigits(container, nextExcluded) {
-    container.innerHTML = "";
-
-    for (let i = 0; i < 3; i += 1) {
-      const chip = document.createElement("div");
-      chip.className = `excluded-chip${nextExcluded[i] ? "" : " empty"}`;
-      chip.textContent = nextExcluded[i] || ".";
-      container.appendChild(chip);
     }
   }
 

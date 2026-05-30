@@ -27,7 +27,7 @@
       ctx.save();
       ctx.translate(shakeX, shakeY);
       drawTrack(snapshot);
-      drawWave(snapshot.wave, snapshot.playerLane, snapshot.tuning.itemSize);
+      drawWave(snapshot.wave, snapshot.playerLane, snapshot.tuning.itemSize, snapshot.speedStack);
       drawPlayer(snapshot);
       drawParticles(snapshot.effects.particles);
       drawFloaters(snapshot.effects.floaters);
@@ -92,6 +92,8 @@
         }
       }
 
+      drawBoostMotion(snapshot);
+
       ctx.strokeStyle = "rgba(241,211,91,0.76)";
       ctx.lineWidth = 3;
       ctx.setLineDash([16, 12]);
@@ -102,7 +104,48 @@
       ctx.setLineDash([]);
     }
 
-    function drawWave(wave, playerLane, itemSize) {
+    function boostMotionLevel(snapshot) {
+      const motion = Number.isFinite(snapshot.tuning.boostMotion)
+        ? snapshot.tuning.boostMotion
+        : 0.5;
+
+      return Math.min(1, ((snapshot.speedStack || 0) / config.MAX_SPEED_STACK) * motion);
+    }
+
+    function drawBoostMotion(snapshot) {
+      const stack = snapshot.speedStack || 0;
+      const intensity = boostMotionLevel(snapshot);
+
+      if (stack <= 0 || intensity <= 0.01) return;
+
+      const step = 112 - intensity * 22;
+      const dashLength = 22 + stack * 2.2;
+      const offset = (snapshot.timestamp * (0.17 + intensity * 0.28)) % step;
+
+      ctx.save();
+      ctx.globalAlpha = 0.08 + intensity * 0.18;
+      ctx.strokeStyle = "#4ac7a5";
+      ctx.lineWidth = 1.4 + intensity * 2.1;
+      ctx.lineCap = "round";
+
+      for (let lane = 0; lane < config.LANES; lane += 1) {
+        const x = laneCenter(lane);
+        const inset = 47 - intensity * 7;
+
+        for (let y = -step + offset; y < config.HEIGHT + step; y += step) {
+          ctx.beginPath();
+          ctx.moveTo(x - inset, y);
+          ctx.lineTo(x - inset, y + dashLength);
+          ctx.moveTo(x + inset, y + step * 0.42);
+          ctx.lineTo(x + inset, y + step * 0.42 + dashLength);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function drawWave(wave, playerLane, itemSize, speedStack) {
       if (!wave) return;
 
       wave.items.forEach((item) => {
@@ -116,11 +159,12 @@
         const handled = wave.handled && item.lane === playerLane;
         const pulse = handled ? 0.44 : 1;
         const danger = wave.crashed && item.lane === playerLane;
+        const boostGlow = Math.min(8, (speedStack || 0) * 0.8);
 
         ctx.save();
         ctx.globalAlpha = pulse;
         ctx.shadowColor = danger ? "rgba(255,111,97,0.65)" : "rgba(0,0,0,0.38)";
-        ctx.shadowBlur = danger ? 26 : 16;
+        ctx.shadowBlur = danger ? 26 : 14 + boostGlow;
         ctx.shadowOffsetY = 10;
         roundedRect(
           x - itemSize / 2,
@@ -173,11 +217,15 @@
         : 0;
       const lift = flipping ? Math.sin(progress * Math.PI) * 64 : 0;
       const spin = flipping ? progress * Math.PI * 2 : 0;
-      const run = snapshot.timestamp / 90;
+      const stack = snapshot.speedStack || 0;
+      const boostWind = boostMotionLevel(snapshot);
+      const run = snapshot.timestamp / Math.max(58, 90 - stack * 3.5);
       const stride = Math.sin(run) * (flipping ? 0.25 : 1);
       const armStride = Math.sin(run + Math.PI) * (flipping ? 0.2 : 1);
       const y = config.PLAYER_Y - lift;
       const playerScale = snapshot.tuning.playerScale;
+      const scarfFlutter = Math.sin(snapshot.timestamp / 80) * (2 + boostWind * 5);
+      const scarfTail = 48 + boostWind * 22;
 
       if (flipping) {
         ctx.save();
@@ -207,8 +255,8 @@
       ctx.fillStyle = "#4ac7a5";
       ctx.beginPath();
       ctx.moveTo(-18, -4);
-      ctx.lineTo(-48, -22);
-      ctx.lineTo(-26, 12);
+      ctx.lineTo(-scarfTail, -22 - boostWind * 7 + scarfFlutter);
+      ctx.lineTo(-26 - boostWind * 8, 12 + scarfFlutter * 0.4);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -322,6 +370,7 @@
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "800 15px Inter, system-ui, sans-serif";
       ctx.fillText(`${formatTime(snapshot.elapsedMs)}  ·  Boost ${snapshot.speedStack}`, 34, 65);
+      drawBoostBadge(snapshot);
 
       if (snapshot.lastGuessPulse) {
         const progress = 1 - snapshot.lastGuessPulse.life / snapshot.lastGuessPulse.maxLife;
@@ -340,13 +389,8 @@
         ctx.restore();
       }
 
-      if (snapshot.paused && !snapshot.gameState.solved && !snapshot.timedOut) {
+      if (snapshot.paused && !snapshot.gameState.solved) {
         drawEndOverlay("일시정지", "P 또는 버튼으로 재개", "#6ba8ff");
-        return;
-      }
-
-      if (snapshot.timedOut && !snapshot.gameState.solved) {
-        drawEndOverlay("시간 종료", "새 게임으로 다시 도전", "#ff6f61");
         return;
       }
 
@@ -356,6 +400,44 @@
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "850 26px Inter, system-ui, sans-serif";
       ctx.fillText(`걸린 시간 ${formatTime(snapshot.finalTimeMs)}`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
+    }
+
+    function drawBoostBadge(snapshot) {
+      const stack = snapshot.speedStack || 0;
+      if (stack <= 0) return;
+
+      const level = Math.min(1, stack / config.MAX_SPEED_STACK);
+      const x = config.WIDTH - 154;
+      const y = 18;
+      const width = 136;
+      const height = 58;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(16,17,20,0.62)";
+      roundedRect(x, y, width, height, 8);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(74,199,165,${0.35 + level * 0.4})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#aef4dc";
+      ctx.font = "900 12px Inter, system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("BOOST", x + 14, y + 20);
+
+      ctx.fillStyle = "#f2f2ea";
+      ctx.font = "950 25px Inter, system-ui, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(`${stack}`, x + width - 14, y + 23);
+
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      roundedRect(x + 14, y + 41, width - 28, 6, 3);
+      ctx.fill();
+      ctx.fillStyle = "#4ac7a5";
+      roundedRect(x + 14, y + 41, (width - 28) * level, 6, 3);
+      ctx.fill();
+      ctx.restore();
     }
 
     function drawEndOverlay(title, subtitle, color) {

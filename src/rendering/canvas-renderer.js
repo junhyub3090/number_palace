@@ -167,7 +167,7 @@
       ctx.stroke();
     }
 
-    function drawLimbSegment(x1, y1, x2, y2, width, color, edgeColor) {
+    function drawLimbSegment(x1, y1, x2, y2, width, color, edgeColor, edgeWidth = 1.6) {
       const angle = Math.atan2(y2 - y1, x2 - x1);
       const nx = Math.cos(angle + Math.PI / 2) * width / 2;
       const ny = Math.sin(angle + Math.PI / 2) * width / 2;
@@ -180,7 +180,7 @@
 
       fillPolygon(points, color);
       if (edgeColor) {
-        strokePolygon(points, edgeColor, 2);
+        strokePolygon(points, edgeColor, edgeWidth);
       }
     }
 
@@ -817,78 +817,135 @@
       ctx.restore();
     }
 
+    function drawBoot(cx, cy, direction, swing, boostWind) {
+      const edge = "#111927";
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(direction, 1);
+      ctx.rotate(swing * 0.28);
+
+      fillPolygon([[-21, -7], [7, -9], [22, -1], [14, 9], [-16, 10], [-27, 3]], "#f1d35b");
+      fillPolygon([[3, -6], [20, -1], [13, 6], [-2, 4]], "#fff2a5");
+      fillPolygon([[-16, 8], [13, 7], [8, 13], [-22, 13]], "#d7848b");
+      strokePolygon([[-21, -7], [7, -9], [22, -1], [14, 9], [-16, 10], [-27, 3]], edge, 1.5);
+
+      if (boostWind > 0.05) {
+        ctx.globalAlpha = 0.18 + boostWind * 0.26;
+        fillPolygon([[-14, 10], [-42 - boostWind * 18, 19], [-9, 17]], boostGlowColor());
+      }
+
+      ctx.restore();
+    }
+
     function drawPlayer(snapshot) {
       const x = laneCenter(snapshot.playerLane);
       const stack = snapshot.speedStack || 0;
       const boostWind = boostMotionLevel(snapshot);
-      const run = snapshot.timestamp / Math.max(58, 90 - stack * 3.5);
+      const run = snapshot.timestamp / Math.max(52, 84 - stack * 4.2);
       const stride = Math.sin(run);
-      const armStride = Math.sin(run + Math.PI);
-      const y = config.PLAYER_Y;
+      const counterStride = Math.sin(run + Math.PI);
+      const bob = Math.sin(run * 2) * 2.4;
+      const y = config.PLAYER_Y + bob;
       const playerScale = snapshot.tuning.playerScale;
+      const edge = "#111927";
+      const suitDark = "#162033";
+      const suitMid = "#26375b";
+      const suitLight = "#36527e";
+      const visor = "#9fe5ff";
+      const accent = "#6ba8ff";
 
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(playerScale, playerScale);
-      ctx.rotate(-boostWind * 0.04);
 
-      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
       ctx.beginPath();
-      ctx.ellipse(0, 58, 42, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 62, 43, 10, 0, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.rotate(-0.04 - boostWind * 0.05);
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
 
       if (boostWind > 0.02) {
         ctx.save();
-        ctx.globalAlpha = 0.18 + boostWind * 0.28;
-        fillPolygon([[-18, 7], [-72 - boostWind * 22, -18], [-28, 24]], "#4ac7a5");
-        fillPolygon([[18, 9], [72 + boostWind * 22, -13], [28, 25]], "#6ba8ff");
-        fillPolygon([[-10, 40], [-46 - boostWind * 20, 70], [2, 56]], "#f1d35b");
-        fillPolygon([[10, 40], [46 + boostWind * 20, 70], [-2, 56]], "#f1d35b");
+        ctx.globalAlpha = 0.16 + boostWind * 0.24;
+        fillPolygon([[-20, 14], [-68 - boostWind * 26, 2], [-27, 30]], boostGlowColor());
+        fillPolygon([[20, 14], [68 + boostWind * 26, 3], [27, 30]], accent);
+        fillPolygon([[-8, 49], [-38 - boostWind * 22, 72], [4, 61]], "#f1d35b");
+        fillPolygon([[8, 49], [38 + boostWind * 22, 72], [-4, 61]], "#f1d35b");
         ctx.restore();
       }
 
-      ctx.lineJoin = "miter";
-      ctx.lineCap = "butt";
+      fillPolygon([[-28, -9], [-40, 24], [-26, 45], [-13, 20], [-16, -4]], "#1c2943");
+      fillPolygon([[28, -9], [40, 24], [26, 45], [13, 20], [16, -4]], "#1c2943");
+      strokePolygon([[-28, -9], [-40, 24], [-26, 45], [-13, 20], [-16, -4]], edge, 1.4);
+      strokePolygon([[28, -9], [40, 24], [26, 45], [13, 20], [16, -4]], edge, 1.4);
 
-      const leftArmX = -36 + armStride * 9;
-      const rightArmX = 36 - armStride * 9;
-      const leftKneeX = -18 + stride * 15;
-      const rightKneeX = 18 - stride * 15;
-      const leftFootX = -25 + stride * 18;
-      const rightFootX = 25 - stride * 18;
+      const leftArm = counterStride;
+      const rightArm = stride;
+      const leftElbowX = -36 + leftArm * 10;
+      const leftElbowY = 16 - leftArm * 7;
+      const rightElbowX = 36 + rightArm * 10;
+      const rightElbowY = 16 - rightArm * 7;
+      const leftHandX = leftElbowX - 8 - leftArm * 7;
+      const leftHandY = 38 + leftArm * 9;
+      const rightHandX = rightElbowX + 8 + rightArm * 7;
+      const rightHandY = 38 + rightArm * 9;
 
-      drawLimbSegment(-25, 0, leftArmX, 28 - armStride * 6, 12, "#273248", "#101114");
-      drawLimbSegment(25, 1, rightArmX, 30 + armStride * 6, 12, "#273248", "#101114");
-      drawLimbSegment(leftArmX, 28 - armStride * 6, leftArmX - 6, 42 - armStride * 2, 10, "#f1d35b", "#101114");
-      drawLimbSegment(rightArmX, 30 + armStride * 6, rightArmX + 6, 44 + armStride * 2, 10, "#f1d35b", "#101114");
+      drawLimbSegment(-23, 0, leftElbowX, leftElbowY, 11, suitMid, edge, 1.35);
+      drawLimbSegment(leftElbowX, leftElbowY, leftHandX, leftHandY, 9, "#dce7ed", edge, 1.25);
+      drawLimbSegment(23, 0, rightElbowX, rightElbowY, 11, suitMid, edge, 1.35);
+      drawLimbSegment(rightElbowX, rightElbowY, rightHandX, rightHandY, 9, "#dce7ed", edge, 1.25);
 
-      drawLimbSegment(-13, 40, leftKneeX, 58, 15, "#202a3d", "#101114");
-      drawLimbSegment(leftKneeX, 58, leftFootX, 79, 13, "#273248", "#101114");
-      drawLimbSegment(13, 40, rightKneeX, 58, 15, "#202a3d", "#101114");
-      drawLimbSegment(rightKneeX, 58, rightFootX, 79, 13, "#273248", "#101114");
+      const leftLeg = stride;
+      const rightLeg = -stride;
+      const leftKneeX = -13 + leftLeg * 16;
+      const rightKneeX = 13 + rightLeg * 16;
+      const leftKneeY = 55 + Math.max(-leftLeg, 0) * 5 - Math.max(leftLeg, 0) * 4;
+      const rightKneeY = 55 + Math.max(-rightLeg, 0) * 5 - Math.max(rightLeg, 0) * 4;
+      const leftFootX = -24 + leftLeg * 21;
+      const rightFootX = 24 + rightLeg * 21;
+      const leftFootY = 80 - Math.max(leftLeg, 0) * 8 + Math.max(-leftLeg, 0) * 3;
+      const rightFootY = 80 - Math.max(rightLeg, 0) * 8 + Math.max(-rightLeg, 0) * 3;
 
-      fillPolygon([[-38, -3], [-24, -16], [-10, -6], [-20, 13]], "#6ba8ff");
-      fillPolygon([[38, -3], [24, -16], [10, -6], [20, 13]], "#6ba8ff");
-      strokePolygon([[-38, -3], [-24, -16], [-10, -6], [-20, 13]], "#101114", 2);
-      strokePolygon([[38, -3], [24, -16], [10, -6], [20, 13]], "#101114", 2);
+      drawLimbSegment(-11, 39, leftKneeX, leftKneeY, 14, "#202f50", edge, 1.35);
+      drawLimbSegment(leftKneeX, leftKneeY, leftFootX, leftFootY, 12, suitMid, edge, 1.25);
+      drawLimbSegment(11, 39, rightKneeX, rightKneeY, 14, "#202f50", edge, 1.35);
+      drawLimbSegment(rightKneeX, rightKneeY, rightFootX, rightFootY, 12, suitMid, edge, 1.25);
 
-      fillPolygon([[-25, -9], [0, -19], [27, -10], [32, 25], [12, 48], [-13, 48], [-32, 24]], "#1f2940");
-      fillPolygon([[-18, -5], [0, -13], [0, 43], [-19, 34], [-25, 13]], "#314264");
-      fillPolygon([[0, -13], [19, -5], [25, 13], [18, 34], [0, 43]], "#24314d");
-      fillPolygon([[-10, 0], [12, 0], [17, 21], [0, 31], [-17, 21]], "#4ac7a5");
-      fillPolygon([[-7, 5], [8, 5], [11, 17], [0, 23], [-11, 17]], "#9fe5ff");
-      strokePolygon([[-25, -9], [0, -19], [27, -10], [32, 25], [12, 48], [-13, 48], [-32, 24]], "#101114", 3);
+      fillPolygon([[-38, -4], [-24, -17], [-9, -8], [-19, 13]], accent);
+      fillPolygon([[38, -4], [24, -17], [9, -8], [19, 13]], accent);
+      strokePolygon([[-38, -4], [-24, -17], [-9, -8], [-19, 13]], edge, 1.5);
+      strokePolygon([[38, -4], [24, -17], [9, -8], [19, 13]], edge, 1.5);
 
-      fillPolygon([[-24, -30], [-13, -51], [11, -54], [27, -37], [23, -19], [3, -10], [-18, -15]], "#eef4f7");
-      fillPolygon([[-18, -31], [-8, -43], [15, -43], [21, -33], [14, -24], [-12, -24]], "#101114");
-      fillPolygon([[-13, -32], [-5, -39], [14, -39], [17, -34], [10, -30], [-10, -28]], "#9fe5ff");
-      fillPolygon([[-24, -31], [-13, -51], [-8, -43], [-18, -31]], "#c7d6df");
-      fillPolygon([[11, -54], [27, -37], [21, -33], [15, -43]], "#d9e6ec");
-      strokePolygon([[-24, -30], [-13, -51], [11, -54], [27, -37], [23, -19], [3, -10], [-18, -15]], "#101114", 3);
+      fillPolygon([[-24, -10], [0, -20], [25, -10], [30, 23], [12, 49], [-12, 49], [-30, 23]], suitDark);
+      fillPolygon([[-18, -5], [0, -14], [0, 43], [-18, 34], [-24, 13]], suitLight);
+      fillPolygon([[0, -14], [18, -5], [24, 13], [18, 34], [0, 43]], suitMid);
+      fillPolygon([[-12, 2], [12, 2], [17, 21], [0, 32], [-17, 21]], "#f2f2ea");
+      fillPolygon([[-7, 7], [8, 7], [11, 17], [0, 24], [-11, 17]], visor);
+      strokePolygon([[-24, -10], [0, -20], [25, -10], [30, 23], [12, 49], [-12, 49], [-30, 23]], edge, 2);
 
-      fillPolygon([[-6, -15], [8, -15], [13, -7], [-10, -6]], "#f1d35b");
-      fillPolygon([[-21, 78], [-5, 75], [1, 84], [-18, 88], [-31, 84]], "#f1d35b");
-      fillPolygon([[21, 78], [5, 75], [-1, 84], [18, 88], [31, 84]], "#f1d35b");
+      ctx.fillStyle = "#eef4f7";
+      ctx.beginPath();
+      ctx.ellipse(0, -35, 23, 24, -0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = edge;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      fillPolygon([[-19, -37], [-9, -47], [12, -47], [21, -36], [15, -25], [-14, -24]], "#101824");
+      fillPolygon([[-13, -36], [-5, -42], [13, -42], [16, -35], [9, -30], [-11, -29]], visor);
+      fillPolygon([[-23, -36], [-13, -55], [-6, -47], [-16, -36]], "#cbd7df");
+      fillPolygon([[12, -54], [25, -38], [19, -34], [12, -45]], "#dfe9ee");
+      fillPolygon([[-4, -60], [5, -60], [7, -54], [-6, -54]], "#f1d35b");
+      strokePolygon([[-19, -37], [-9, -47], [12, -47], [21, -36], [15, -25], [-14, -24]], edge, 1.35);
+
+      fillPolygon([[-5, -17], [8, -17], [13, -8], [-11, -7]], "#f1d35b");
+
+      drawBoot(leftFootX, leftFootY, -1, leftLeg, boostWind);
+      drawBoot(rightFootX, rightFootY, 1, rightLeg, boostWind);
 
       ctx.restore();
     }

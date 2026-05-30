@@ -1,5 +1,8 @@
-import { app, analytics } from "./firebaseConfig.js";
+import { app, analytics, auth } from "./firebaseConfig.js";
 import { logEvent } from "firebase/analytics";
+import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
+
+const googleProvider = new GoogleAuthProvider();
 
 /**
  * Firebase API 모듈
@@ -8,6 +11,9 @@ import { logEvent } from "firebase/analytics";
 const FirebaseApi = {
   // 앱 인스턴스 반환
   getApp: () => app,
+  
+  // Auth 인스턴스 반환
+  getAuth: () => auth,
 
   // 특정 이벤트 로깅
   logCustomEvent: (eventName, eventParams = {}) => {
@@ -19,7 +25,20 @@ const FirebaseApi = {
     }
   },
 
-  // 추가 파이어베이스 함수(Auth, Firestore 등)를 이곳에 정의하세요.
+  // 구글 로그인
+  signInWithGoogle: () => {
+    return signInWithPopup(auth, googleProvider);
+  },
+
+  // 로그아웃
+  signOut: () => {
+    return signOut(auth);
+  },
+
+  // 로그인 상태 변경 감지
+  onAuthStateChanged: (callback) => {
+    return onAuthStateChanged(auth, callback);
+  }
 };
 
 // 기존 스크립트 기반 코드(Non-module)에서도 사용할 수 있도록 전역 객체에 노출

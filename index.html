@@ -10,7 +10,8 @@
       {
         "imports": {
           "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
-          "firebase/analytics": "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js"
+          "firebase/analytics": "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js",
+          "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"
         }
       }
     </script>
@@ -122,6 +123,16 @@
   </main>
 
   <script type="module" src="src/firebase/firebaseApi.js"></script>
+  <script type="module">
+    import FirebaseApi from './src/firebase/firebaseApi.js';
+    
+    FirebaseApi.onAuthStateChanged((user) => {
+      if (!user) {
+        // 로그인이 안 되어있으면 로그인 화면으로 이동
+        window.location.replace('login.html');
+      }
+    });
+  </script>
   <script defer src="src/core/game-core.js"></script>
   <script defer src="src/game/config.js"></script>
   <script defer src="src/game/audio.js"></script>

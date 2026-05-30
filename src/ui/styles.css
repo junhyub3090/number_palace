@@ -104,6 +104,12 @@ button {
   gap: 14px;
 }
 
+.panel-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 7px;
+}
+
 .kicker {
   margin: 0 0 5px;
   color: var(--accent-2);
@@ -129,13 +135,23 @@ h2 {
   font-weight: 800;
 }
 
+#pauseButton,
 #restartButton {
   flex: 0 0 auto;
   padding: 8px 11px;
-  background: var(--accent);
-  color: #17140a;
   font-size: 14px;
   font-weight: 900;
+}
+
+#pauseButton {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+#restartButton {
+  background: var(--accent);
+  color: #17140a;
 }
 
 .status-block {

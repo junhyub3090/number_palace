@@ -340,6 +340,11 @@
         ctx.restore();
       }
 
+      if (snapshot.paused && !snapshot.gameState.solved && !snapshot.timedOut) {
+        drawEndOverlay("일시정지", "P 또는 버튼으로 재개", "#6ba8ff");
+        return;
+      }
+
       if (snapshot.timedOut && !snapshot.gameState.solved) {
         drawEndOverlay("시간 종료", "새 게임으로 다시 도전", "#ff6f61");
         return;

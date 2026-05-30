@@ -11,6 +11,7 @@
   );
   const effects = window.RunningBaseballEffects.createEffects(config, renderer.laneCenter);
   const elements = hud.getHudElements(document);
+  const pauseButton = document.getElementById("pauseButton");
   const restartButton = document.getElementById("restartButton");
 
   let tuning = { ...config.DEFAULT_TUNING };
@@ -27,11 +28,11 @@
   let flashColor;
   let message;
   let speedStack;
-  let startTime;
   let elapsedMs;
   let finalTimeMs;
   let combo;
   let lastGuessPulse;
+  let paused;
   let timedOut;
 
   window.RunningBaseballDevControls.createDevControls(
@@ -52,9 +53,9 @@
     flipUntil = 0;
     lastFlipAt = -Infinity;
     lastFrame = performance.now();
-    startTime = lastFrame;
     elapsedMs = 0;
     finalTimeMs = null;
+    paused = false;
     timedOut = false;
     spawnCounter = 0;
     shakeAmount = 0;
@@ -66,6 +67,7 @@
     message = "빈칸은 가속, 박치기는 감속. 3개를 먹으면 조합 추측!";
     effects.reset();
     spawnWave();
+    updatePauseButton();
     renderHud();
   }
 
@@ -93,7 +95,7 @@
   }
 
   function moveLane(delta) {
-    if (gameState.solved || timedOut) return;
+    if (gameState.solved || paused || timedOut) return;
 
     const nextLane = Math.max(0, Math.min(config.LANES - 1, playerLane + delta));
     if (nextLane !== playerLane) {
@@ -110,7 +112,7 @@
   }
 
   function startFlip(now) {
-    if (gameState.solved || timedOut || now - lastFlipAt < config.FLIP_COOLDOWN) return;
+    if (gameState.solved || paused || timedOut || now - lastFlipAt < config.FLIP_COOLDOWN) return;
 
     audio.ensureAudio();
     flipUntil = now + config.FLIP_DURATION;
@@ -246,7 +248,7 @@
   }
 
   function handleCatch(now) {
-    if (timedOut || !wave || wave.handled || Math.abs(wave.y - config.CATCH_Y) > 26) return;
+    if (paused || timedOut || !wave || wave.handled || Math.abs(wave.y - config.CATCH_Y) > 26) return;
 
     const item = currentLaneItem();
     wave.handled = true;
@@ -295,32 +297,49 @@
     const dt = Math.min(0.033, (timestamp - lastFrame) / 1000);
     lastFrame = timestamp;
 
-    if (!gameState.solved && !timedOut) {
-      elapsedMs = timestamp - startTime;
-      if (elapsedMs >= tuning.timeLimitSeconds * 1000) {
-        handleTimeout();
+    if (!paused) {
+      if (!gameState.solved && !timedOut) {
+        elapsedMs += dt * 1000;
+        if (elapsedMs >= tuning.timeLimitSeconds * 1000) {
+          handleTimeout();
+        }
       }
+
+      const speed = speedMultiplier();
+      effects.updateStars(dt, speed, speedStack);
+
+      if (!gameState.solved && !timedOut) {
+        wave.y += wave.speed * speed * dt;
+        handleCatch(timestamp);
+
+        if (wave.y > config.HEIGHT + 100) {
+          spawnWave();
+        }
+      }
+
+      effects.update(dt);
+      updateLastGuessPulse(dt);
+      shakeAmount *= 0.84;
+      flashAmount *= 0.84;
     }
 
-    const speed = speedMultiplier();
-    effects.updateStars(dt, speed, speedStack);
-
-    if (!gameState.solved && !timedOut) {
-      wave.y += wave.speed * speed * dt;
-      handleCatch(timestamp);
-
-      if (wave.y > config.HEIGHT + 100) {
-        spawnWave();
-      }
-    }
-
-    effects.update(dt);
-    updateLastGuessPulse(dt);
-    shakeAmount *= 0.84;
-    flashAmount *= 0.84;
     renderer.draw(createRenderSnapshot(timestamp));
     renderLiveStats();
     requestAnimationFrame(update);
+  }
+
+  function togglePause() {
+    if (gameState.solved || timedOut) return;
+
+    paused = !paused;
+    message = paused ? "일시정지" : "재개";
+    updatePauseButton();
+    renderHud();
+  }
+
+  function updatePauseButton() {
+    pauseButton.textContent = paused ? "재개" : "정지";
+    pauseButton.setAttribute("aria-pressed", String(paused));
   }
 
   function handleTimeout() {
@@ -341,6 +360,7 @@
       gameState,
       message,
       nextExcluded,
+      paused,
       speedMultiplier,
       speedStack,
       timedOut,
@@ -383,6 +403,9 @@
     } else if (event.code === "Space") {
       event.preventDefault();
       startFlip(performance.now());
+    } else if (event.key === "p" || event.key === "P") {
+      event.preventDefault();
+      togglePause();
     }
   });
 
@@ -396,6 +419,7 @@
     });
   });
 
+  pauseButton.addEventListener("click", togglePause);
   restartButton.addEventListener("click", resetGame);
 
   resetGame();

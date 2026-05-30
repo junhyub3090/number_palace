@@ -18,12 +18,12 @@
     DEFAULT_TUNING: {
       baseWaveSpeed: 220,
       boostGain: 0.08,
+      boostMotion: 0.5,
       effectIntensity: 0.55,
       itemSize: 60,
       playerScale: 0.9,
       shakeIntensity: 0.45,
       speedCap: 2.25,
-      timeLimitSeconds: 90,
     },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

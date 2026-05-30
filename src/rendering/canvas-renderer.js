@@ -118,6 +118,7 @@
         !snapshot.wave.handled &&
         waveY > top - 110 &&
         waveY < top + height + 18;
+      const flipping = snapshot.timestamp < snapshot.flipUntil;
 
       ctx.save();
       for (let lane = 0; lane < config.LANES; lane += 1) {

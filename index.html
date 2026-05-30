@@ -138,18 +138,31 @@
   <script defer src="src/rendering/canvas-renderer.js"></script>
   <script defer src="src/game/game.js"></script>
   <script type="module">
-    import FirebaseApi from './src/firebase/firebaseApi.js';
-
-    FirebaseApi.onAuthStateChanged(async (user) => {
-      if (!user) {
-        // 로그인 안 되어있으면 게스트 모드로 자동 로그인
-        try {
-          await FirebaseApi.signInAsGuest();
-        } catch (error) {
-          console.error("게스트 로그인 실패. 파이어베이스 익명 로그인을 활성화해주세요.", error);
-        }
+    async function bootstrapFirebase() {
+      if (window.location.protocol === 'file:') {
+        console.warn('Firebase 로그인은 로컬 서버(http://127.0.0.1:8000/)에서만 실행됩니다.');
+        return;
       }
-    });
+
+      try {
+        const { default: FirebaseApi } = await import('./src/firebase/firebaseApi.js');
+
+        FirebaseApi.onAuthStateChanged(async (user) => {
+          if (!user) {
+            // 로그인 안 되어있으면 게스트 모드로 자동 로그인
+            try {
+              await FirebaseApi.signInAsGuest();
+            } catch (error) {
+              console.error("게스트 로그인 실패. 파이어베이스 익명 로그인을 활성화해주세요.", error);
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Firebase 초기화 실패", error);
+      }
+    }
+
+    bootstrapFirebase();
 
     // 로비로 돌아가기
     const lobbyBtn = document.getElementById('lobbyButton');

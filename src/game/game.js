@@ -395,7 +395,7 @@
       event.preventDefault();
       audio.ensureAudio();
       moveLane(1);
-    } else if (event.code === "Space") {
+    } else if (event.code === "Space" || event.key === "ArrowUp" || event.code === "KeyW") {
       event.preventDefault();
       startFlip(performance.now());
     } else if (event.key === "p" || event.key === "P") {

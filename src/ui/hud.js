@@ -4,9 +4,11 @@
       guessSlots: documentRef.getElementById("guessSlots"),
       historyList: documentRef.getElementById("historyList"),
       messageBox: documentRef.getElementById("messageBox"),
+      nextDigitsValue: documentRef.getElementById("nextDigitsValue"),
       timeValue: documentRef.getElementById("timeValue"),
       remainingTimeValue: documentRef.getElementById("remainingTimeValue"),
       scoreValue: documentRef.getElementById("scoreValue"),
+      clearedSetsValue: documentRef.getElementById("clearedSetsValue"),
       boostValue: documentRef.getElementById("boostValue"),
       speedValue: documentRef.getElementById("speedValue"),
       hintProgressValue: documentRef.getElementById("hintProgressValue"),
@@ -27,11 +29,13 @@
     elements.timeValue.textContent = formatTime(stats.elapsedMs);
     elements.remainingTimeValue.textContent = formatTime(stats.remainingMs);
     elements.scoreValue.textContent = String(stats.score);
+    elements.clearedSetsValue.textContent = String(stats.clearedSets);
     elements.boostValue.textContent = String(stats.speedStack);
     elements.speedValue.textContent = `x${stats.speedMultiplierValue.toFixed(2)}`;
     elements.hintProgressValue.textContent = `${stats.hintProgress}/3`;
     elements.excludedDigitsValue.textContent =
       stats.excludedHintDigits.length === 0 ? "-" : stats.excludedHintDigits.join(", ");
+    renderNextDigits(elements.nextDigitsValue, stats.nextWaveDigits);
   }
 
   function renderHud(elements, core, viewState) {
@@ -54,6 +58,19 @@
       const slot = document.createElement("div");
       slot.className = `slot${currentGuess[i] ? "" : " empty"}`;
       slot.textContent = currentGuess[i] || ".";
+      container.appendChild(slot);
+    }
+  }
+
+  function renderNextDigits(container, nextWaveDigits) {
+    if (!container) return;
+
+    const digits = Array.isArray(nextWaveDigits) ? nextWaveDigits : [];
+    container.innerHTML = "";
+
+    for (let index = 0; index < 3; index += 1) {
+      const slot = document.createElement("span");
+      slot.textContent = digits[index] || ".";
       container.appendChild(slot);
     }
   }

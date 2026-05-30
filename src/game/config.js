@@ -24,6 +24,7 @@
       allowDuplicates: false,
       itemSize: 60,
       playerScale: 0.9,
+      scoreGraceGuesses: 4,
       shakeIntensity: 0.45,
       speedCap: 2.65,
       timeLimitSeconds: 120,

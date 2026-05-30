@@ -65,6 +65,13 @@
         format: (value) => value.toFixed(2),
       },
       {
+        id: "qaScoreGraceGuesses",
+        key: "scoreGraceGuesses",
+        labelId: "qaScoreGraceGuessesValue",
+        normalize: (value) => Number(value),
+        format: (value) => String(Math.round(value)),
+      },
+      {
         id: "qaEffectIntensity",
         key: "effectIntensity",
         labelId: "qaEffectIntensityValue",

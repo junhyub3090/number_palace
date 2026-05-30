@@ -279,6 +279,29 @@ h2 {
   line-height: 1;
 }
 
+.next-card {
+  grid-column: span 2;
+}
+
+.next-digits {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.next-digits span {
+  width: 24px;
+  height: 26px;
+  border: 1px solid rgba(241, 211, 91, 0.42);
+  border-radius: 6px;
+  background: rgba(241, 211, 91, 0.12);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 950;
+}
+
 .guess-slots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

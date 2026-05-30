@@ -45,8 +45,12 @@
             <strong id="remainingTimeValue">02:00.0</strong>
           </div>
           <div class="stat-card">
-            <span>세트</span>
+            <span>점수</span>
             <strong id="scoreValue">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>세트</span>
+            <strong id="clearedSetsValue">0</strong>
           </div>
           <div class="stat-card">
             <span>부스트</span>
@@ -55,6 +59,10 @@
           <div class="stat-card">
             <span>현재속도</span>
             <strong id="speedValue">x1.00</strong>
+          </div>
+          <div class="stat-card next-card">
+            <span>다음 숫자</span>
+            <strong id="nextDigitsValue" class="next-digits"><span>.</span><span>.</span><span>.</span></strong>
           </div>
           <div class="stat-card">
             <span>힌트</span>
@@ -141,6 +149,11 @@
               <span>캐릭터</span>
               <input id="qaPlayerScale" type="range" min="75" max="110" value="90" />
               <strong id="qaPlayerScaleValue">0.90</strong>
+            </label>
+            <label>
+              <span>만점추측</span>
+              <input id="qaScoreGraceGuesses" type="range" min="1" max="10" value="4" />
+              <strong id="qaScoreGraceGuessesValue">4</strong>
             </label>
             <label>
               <span>연출 강도</span>

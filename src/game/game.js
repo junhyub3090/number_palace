@@ -22,6 +22,8 @@
   let lastDashAt;
   let lastFrame;
   let spawnCounter;
+  let digitBag;
+  let nextWaveDigits;
   let shakeAmount;
   let flashAmount;
   let flashColor;
@@ -30,6 +32,8 @@
   let elapsedMs;
   let finalTimeMs;
   let score;
+  let clearedSets;
+  let lastSetPoints;
   let gameEnded;
   let endReason;
   let combo;
@@ -75,10 +79,15 @@
     elapsedMs = 0;
     finalTimeMs = null;
     score = 0;
+    clearedSets = 0;
+    lastSetPoints = 0;
     gameEnded = false;
     endReason = null;
     paused = false;
     spawnCounter = 0;
+    digitBag = core.createDigitBag(bagOptions());
+    const firstWaveDigits = takeWaveDigits();
+    nextWaveDigits = takeWaveDigits();
     shakeAmount = 0;
     flashAmount = 0;
     flashColor = "rgba(255,255,255,0)";
@@ -89,7 +98,7 @@
     lastGuessPulse = null;
     message = "숫자는 닿으면 캐치. 빈칸은 천천히 통과하면 힌트, 대쉬로 통과하면 부스트!";
     effects.reset();
-    spawnWave();
+    spawnWave(firstWaveDigits);
     updatePauseButton();
     renderHud();
   }
@@ -102,8 +111,14 @@
     );
   }
 
-  function spawnWave() {
-    const base = core.createWave(Math.random, [], generationOptions());
+  function spawnWave(waveDigits) {
+    const digits = Array.isArray(waveDigits) && waveDigits.length === 3
+      ? waveDigits
+      : takeWaveDigits();
+    const base = core.createWave(Math.random, [], {
+      ...generationOptions(),
+      waveDigits: digits,
+    });
     wave = {
       id: spawnCounter++,
       y: -86,
@@ -115,11 +130,35 @@
     renderHud();
   }
 
+  function advanceWave() {
+    const currentDigits = Array.isArray(nextWaveDigits) && nextWaveDigits.length === 3
+      ? nextWaveDigits
+      : takeWaveDigits();
+    nextWaveDigits = takeWaveDigits();
+    spawnWave(currentDigits);
+  }
+
   function generationOptions() {
     return {
       allowDuplicates: tuning.allowDuplicates,
       digitMax: tuning.digitMax,
     };
+  }
+
+  function bagOptions() {
+    return {
+      copies: 3,
+      digitMax: tuning.digitMax,
+    };
+  }
+
+  function takeWaveDigits() {
+    const result = core.takeWaveDigitsFromBag(digitBag, {
+      ...bagOptions(),
+      rng: Math.random,
+    });
+    digitBag = result.bag;
+    return result.digits;
   }
 
   function timeLimitMs() {
@@ -168,14 +207,14 @@
 
     if (!item || item.kind === "empty") {
       boostFromEmpty("dash");
-      spawnWave();
+      advanceWave();
       renderHud();
       return;
     }
 
     const completedSet = collectNumber(item, "dash");
     if (!completedSet && !gameEnded) {
-      spawnWave();
+      advanceWave();
     }
     renderHud();
   }
@@ -269,19 +308,36 @@
     audio.playEffect("guess");
   }
 
+  function setScoreForGuessCount(guessCount) {
+    return core.scoreSolvedSet(guessCount, {
+      baseScore: 500,
+      graceGuesses: Math.max(0, tuning.scoreGraceGuesses || 4),
+      penaltyPerGuess: 50,
+    });
+  }
+
   function completeSet() {
     const solvedSecret = gameState.secret.join("");
-    score += 1;
+    const guessCount = gameState.history.length;
+    lastSetPoints = setScoreForGuessCount(guessCount);
+    score += lastSetPoints;
+    clearedSets += 1;
     flash("rgba(241,211,91,0.38)", 0.7);
     effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", scaledEffectCount(48), 460);
-    effects.addFloater(config.WIDTH / 2, config.HEIGHT / 2 + 54, `SET ${score}`, "#f1d35b", 1.18);
-    message = `정답 ${solvedSecret} · ${score}세트 클리어`;
+    effects.addFloater(
+      config.WIDTH / 2,
+      config.HEIGHT / 2 + 54,
+      `+${lastSetPoints}`,
+      "#f1d35b",
+      1.18,
+    );
+    message = `정답 ${solvedSecret} · ${guessCount}회 · +${lastSetPoints}점`;
     audio.playEffect("clear");
     gameState = core.createGameState(generationOptions());
     combo = 0;
     hintProgress = 0;
     excludedHintDigits = [];
-    spawnWave();
+    advanceWave();
   }
 
   function handleCatch(now) {
@@ -386,7 +442,7 @@
         handleCatch(timestamp);
 
         if (wave.y > config.HEIGHT + 100) {
-          spawnWave();
+          advanceWave();
         }
       }
 
@@ -427,7 +483,7 @@
       scaledEffectCount(42),
       420,
     );
-    message = `${reason === "time" ? "시간 종료" : "게임 종료"} · ${score}세트`;
+    message = `${reason === "time" ? "시간 종료" : "게임 종료"} · ${score}점 · ${clearedSets}세트`;
     audio.playEffect("guess");
     updatePauseButton();
     renderHud();
@@ -445,9 +501,12 @@
       finalTimeMs,
       gameState,
       gameEnded,
+      clearedSets,
       excludedHintDigits,
       hintProgress,
+      lastSetPoints,
       message,
+      nextWaveDigits,
       paused,
       remainingMs: remainingMs(),
       score,

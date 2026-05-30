@@ -73,6 +73,38 @@ deepEqual(core.scoreGuess([1, 1, 2], [1, 1, 1]), {
 
 deepEqual(core.digitPool(5), [1, 2, 3, 4, 5]);
 
+equal(core.scoreSolvedSet(1), 500);
+equal(core.scoreSolvedSet(4), 500);
+equal(core.scoreSolvedSet(5), 450);
+equal(core.scoreSolvedSet(6), 400);
+equal(core.scoreSolvedSet(14), 0);
+equal(core.scoreSolvedSet(3, { graceGuesses: 2, penaltyPerGuess: 25 }), 475);
+
+{
+  const bag = core.createDigitBag({ digitMax: 5, copies: 3 });
+  deepEqual(bag, [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5]);
+}
+
+{
+  const result = core.takeWaveDigitsFromBag([1, 1, 1, 2, 2, 2, 3, 3, 3], {
+    digitMax: 3,
+    rng: makeRng([0, 0, 0]),
+  });
+
+  deepEqual(result.digits, [1, 2, 3]);
+  deepEqual(result.bag, [1, 1, 2, 2, 3, 3]);
+}
+
+{
+  const result = core.takeWaveDigitsFromBag([1, 1, 2, 2], {
+    digitMax: 5,
+    rng: makeRng([0, 0, 0]),
+  });
+
+  deepEqual(result.digits, [1, 2, 3]);
+  equal(result.bag.length, 12);
+}
+
 deepEqual(
   core.createSecret({
     allowDuplicates: true,
@@ -109,6 +141,18 @@ deepEqual(
   deepEqual(
     wave.items.filter((item) => item.kind === "digit").map((item) => item.value),
     [1, 1, 1],
+  );
+}
+
+{
+  const wave = core.createWave(makeRng([0]), [], {
+    digitMax: 9,
+    waveDigits: [7, 8, 9],
+  });
+
+  deepEqual(
+    wave.items.filter((item) => item.kind === "digit").map((item) => item.value),
+    [7, 8, 9],
   );
 }
 

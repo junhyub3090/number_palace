@@ -43,6 +43,69 @@
     return DIGITS.filter((digit) => digit <= digitMax);
   }
 
+  function createDigitBag(options) {
+    const settings = normalizeGenerationOptions(options || {});
+    const copies = Math.max(1, Math.floor(Number(options && options.copies) || 3));
+    const bag = [];
+
+    digitPool(settings.digitMax).forEach((digit) => {
+      for (let index = 0; index < copies; index += 1) {
+        bag.push(digit);
+      }
+    });
+
+    return bag;
+  }
+
+  function uniqueDigitsInBag(bag) {
+    const unique = [];
+
+    (bag || []).forEach((digit) => {
+      if (!unique.includes(digit)) {
+        unique.push(digit);
+      }
+    });
+
+    return unique;
+  }
+
+  function removeOneDigit(bag, digit) {
+    const nextBag = bag.slice();
+    const index = nextBag.indexOf(digit);
+
+    if (index >= 0) {
+      nextBag.splice(index, 1);
+    }
+
+    return nextBag;
+  }
+
+  function takeWaveDigitsFromBag(bag, options) {
+    const settings = normalizeGenerationOptions(options || {});
+    const count = Math.max(1, Math.floor(Number(options && options.count) || 3));
+    const copies = Math.max(1, Math.floor(Number(options && options.copies) || 3));
+    let nextBag = Array.isArray(bag) ? bag.slice() : [];
+
+    if (uniqueDigitsInBag(nextBag).length < count) {
+      nextBag = createDigitBag({
+        copies,
+        digitMax: settings.digitMax,
+      });
+    }
+
+    const available = uniqueDigitsInBag(nextBag);
+    const digits = pickDistinct(available, count, settings.rng);
+
+    digits.forEach((digit) => {
+      nextBag = removeOneDigit(nextBag, digit);
+    });
+
+    return {
+      bag: nextBag,
+      digits,
+    };
+  }
+
   function pickDigits(pool, count, rng, allowDuplicates) {
     if (!allowDuplicates) {
       return pickDistinct(pool, count, rng);
@@ -67,6 +130,9 @@
   }
 
   function createWave(rng, excludedDigits, options) {
+    const waveDigits = options && Array.isArray(options.waveDigits)
+      ? options.waveDigits.slice(0, 3)
+      : null;
     const settings = normalizeGenerationOptions({
       ...(options || {}),
       rng: rng || Math.random,
@@ -81,7 +147,7 @@
     }
 
     const emptyLane = randomIndex(random, 4);
-    const digits = pickDigits(pool, 3, random, settings.allowDuplicates);
+    const digits = waveDigits || pickDigits(pool, 3, random, settings.allowDuplicates);
     let digitIndex = 0;
 
     return {
@@ -131,6 +197,19 @@
       .map((item) => item.entry);
   }
 
+  function scoreSolvedSet(guessCount, options) {
+    const settings = options || {};
+    const baseScore = Number.isFinite(settings.baseScore) ? settings.baseScore : 500;
+    const graceGuesses = Number.isFinite(settings.graceGuesses) ? settings.graceGuesses : 4;
+    const penaltyPerGuess = Number.isFinite(settings.penaltyPerGuess)
+      ? settings.penaltyPerGuess
+      : 50;
+    const safeGuessCount = Math.max(0, Math.floor(Number(guessCount) || 0));
+    const penaltySteps = Math.max(0, safeGuessCount - graceGuesses);
+
+    return Math.max(0, baseScore - penaltySteps * penaltyPerGuess);
+  }
+
   function createGameState(options) {
     const settings = options || {};
     const secret = settings.secret
@@ -173,10 +252,13 @@
   const api = {
     DIGITS,
     collectDigit,
+    createDigitBag,
     createGameState,
     createSecret,
     createWave,
     digitPool,
+    scoreSolvedSet,
+    takeWaveDigitsFromBag,
     scoreGuess,
     sortHistoryForDisplay,
   };

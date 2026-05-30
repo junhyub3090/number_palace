@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>러닝 숫자야구 - 로비</title>
+  <link rel="stylesheet" href="src/ui/styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/analytics": "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"
+      }
+    }
+  </script>
+  <style>
+    .lobby-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .lobby-box {
+      background: rgba(24, 27, 32, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow);
+      border-radius: 12px;
+      padding: 48px 36px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .lobby-box h1 {
+      margin-bottom: 8px;
+    }
+    .user-info {
+      color: var(--accent-2);
+      font-size: 15px;
+      font-weight: 800;
+      background: rgba(74, 199, 165, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid rgba(74, 199, 165, 0.2);
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-weight: 900;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, filter 0.2s, transform 0.1s;
+      width: 100%;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #17140a;
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+    .btn-secondary {
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      background: #333a44;
+    }
+  </style>
+</head>
+<body>
+  <div class="lobby-container">
+    <div class="lobby-box">
+      <div>
+        <p class="kicker">Running Baseball</p>
+        <h1>게임 로비</h1>
+      </div>
+      
+      <div class="user-info" id="userInfo">접속 정보를 불러오는 중...</div>
+      
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+        <button id="newGameBtn" class="btn btn-primary" type="button">새 게임 시작</button>
+        <button id="logoutBtn" class="btn btn-secondary" type="button">로그아웃</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import FirebaseApi from './src/firebase/firebaseApi.js';
+    
+    const userInfoEl = document.getElementById('userInfo');
+    const newGameBtn = document.getElementById('newGameBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // 인증 상태 확인
+    FirebaseApi.onAuthStateChanged((user) => {
+      if (!user) {
+        window.location.replace('login.html');
+      } else {
+        userInfoEl.textContent = `환영합니다, ${user.displayName || user.email || '플레이어'}님!`;
+      }
+    });
+
+    // 새 게임 시작
+    newGameBtn.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
+    // 로그아웃
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await FirebaseApi.signOut();
+        // 로그아웃 성공 시 onAuthStateChanged에 의해 자동으로 login.html로 리다이렉트됨
+      } catch (error) {
+        console.error('로그아웃 에러:', error);
+        alert('로그아웃에 실패했습니다.');
+      }
+    });
+  </script>
+</body>
+</html>

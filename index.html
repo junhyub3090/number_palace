@@ -35,6 +35,7 @@
           <h1>러닝 숫자야구</h1>
         </div>
         <div class="panel-actions">
+          <button id="lobbyButton" type="button" style="background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px 11px; font-size: 14px; font-weight: 900; flex: 0 0 auto;">로비</button>
           <button id="pauseButton" type="button">정지</button>
           <button id="restartButton" type="button">새 게임</button>
         </div>
@@ -132,6 +133,14 @@
         window.location.replace('login.html');
       }
     });
+
+    // 로비로 돌아가기
+    const lobbyBtn = document.getElementById('lobbyButton');
+    if (lobbyBtn) {
+      lobbyBtn.addEventListener('click', () => {
+        window.location.href = 'lobby.html';
+      });
+    }
   </script>
   <script defer src="src/core/game-core.js"></script>
   <script defer src="src/game/config.js"></script>

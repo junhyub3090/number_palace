@@ -22,6 +22,7 @@
   let nextExcluded;
   let flipUntil;
   let lastFlipAt;
+  let lastDashAt;
   let lastFrame;
   let spawnCounter;
   let shakeAmount;
@@ -65,6 +66,7 @@
     nextExcluded = [];
     flipUntil = 0;
     lastFlipAt = -Infinity;
+    lastDashAt = -Infinity;
     lastFrame = performance.now();
     elapsedMs = 0;
     finalTimeMs = null;
@@ -162,6 +164,39 @@
     audio.playEffect("flip");
   }
 
+  function startDash(now) {
+    if (gameEnded || paused || !wave || wave.handled || now - lastDashAt < config.DASH_COOLDOWN) return;
+
+    const item = currentLaneItem();
+    lastDashAt = now;
+    audio.ensureAudio();
+    wave.handled = true;
+    wave.y = Math.max(wave.y, config.CATCH_Y);
+    shake(9);
+    flash("rgba(107,168,255,0.22)", 0.34);
+    effects.flashLane(playerLane, "#6ba8ff", 0.42);
+    effects.addFloater(
+      renderer.laneCenter(playerLane),
+      config.CATCH_Y - 76,
+      "DASH",
+      "#6ba8ff",
+      0.92,
+    );
+
+    if (!item || item.kind === "empty") {
+      passEmptyWhileDashing();
+      spawnWave();
+      renderHud();
+      return;
+    }
+
+    const completedSet = collectNumber(item, "dash");
+    if (!completedSet && !gameEnded) {
+      spawnWave();
+    }
+    renderHud();
+  }
+
   function waveDigits(activeWave) {
     return activeWave.items
       .filter((item) => item.kind === "digit")
@@ -209,7 +244,7 @@
     audio.playEffect("boost");
   }
 
-  function collectNumber(item) {
+  function collectNumber(item, source) {
     const before = gameState.history.length;
     const x = renderer.laneCenter(item.lane);
     combo += 1;
@@ -219,8 +254,16 @@
     effects.flashLane(item.lane, "#f1d35b", 0.62);
     flash("rgba(241,211,91,0.28)", 0.4);
     effects.burst(x, config.CATCH_Y, "#f1d35b", scaledEffectCount(28), 380);
-    effects.addFloater(x, config.CATCH_Y - 54, `CATCH ${item.value}`, "#f1d35b", 1);
-    message = `${item.value} 점프 캐치 · ${gameState.currentGuess.length}/3`;
+    effects.addFloater(
+      x,
+      config.CATCH_Y - 54,
+      source === "dash" ? `DASH ${item.value}` : `CATCH ${item.value}`,
+      "#f1d35b",
+      source === "dash" ? 1.08 : 1,
+    );
+    message = source === "dash"
+      ? `${item.value} 대쉬 캐치 · ${gameState.currentGuess.length}/3`
+      : `${item.value} 점프 캐치 · ${gameState.currentGuess.length}/3`;
     audio.playEffect("collect");
 
     if (gameState.history.length > before) {
@@ -229,7 +272,10 @@
 
     if (gameState.solved) {
       completeSet();
+      return true;
     }
+
+    return false;
   }
 
   function showGuessResult(last) {
@@ -325,6 +371,26 @@
       0.72,
     );
     message = "빈칸 점프 통과 · 부스트 없음";
+  }
+
+  function passEmptyWhileDashing() {
+    effects.flashLane(playerLane, "#6ba8ff", 0.36);
+    effects.burst(
+      renderer.laneCenter(playerLane),
+      config.CATCH_Y,
+      "#6ba8ff",
+      scaledEffectCount(14),
+      260,
+    );
+    effects.addFloater(
+      renderer.laneCenter(playerLane),
+      config.CATCH_Y - 38,
+      "DASH PASS",
+      "#9fc5ff",
+      0.78,
+    );
+    message = "빈칸 대쉬 통과 · 부스트 없음";
+    audio.playEffect("flip");
   }
 
   function updateLastGuessPulse(dt) {
@@ -461,6 +527,9 @@
     } else if (event.code === "Space" || event.key === "ArrowUp" || event.code === "KeyW") {
       event.preventDefault();
       startFlip(performance.now());
+    } else if (event.code === "KeyZ") {
+      event.preventDefault();
+      startDash(performance.now());
     } else if (event.key === "p" || event.key === "P") {
       event.preventDefault();
       togglePause();

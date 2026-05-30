@@ -21,7 +21,7 @@
 <body>
   <main class="app-shell">
     <section class="game-surface" aria-label="러닝 숫자야구 게임 화면">
-      <canvas id="gameCanvas" width="640" height="720"></canvas>
+      <canvas id="gameCanvas" width="640" height="780"></canvas>
       <div class="touch-controls" aria-label="터치 조작">
         <button type="button" data-action="left" aria-label="왼쪽 레인">←</button>
         <button type="button" data-action="flip" aria-label="공중제비">␣</button>
@@ -36,8 +36,7 @@
           <h1>러닝 숫자야구</h1>
         </div>
         <div class="panel-actions">
-          <button id="lobbyButton" type="button"
-            style="background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px 11px; font-size: 14px; font-weight: 900; flex: 0 0 auto;">로비</button>
+          <button id="lobbyButton" type="button">로비</button>
           <button id="pauseButton" type="button">정지</button>
           <button id="deathButton" type="button">죽음</button>
           <button id="restartButton" type="button">새 게임</button>
@@ -113,13 +112,13 @@
           </label>
           <label>
             <span>빈칸 가속</span>
-            <input id="qaBoostGain" type="range" min="0" max="32" value="11" />
-            <strong id="qaBoostGainValue">0.11</strong>
+            <input id="qaBoostGain" type="range" min="0" max="80" value="55" />
+            <strong id="qaBoostGainValue">0.55</strong>
           </label>
           <label>
             <span>최대속도</span>
-            <input id="qaSpeedCap" type="range" min="180" max="420" value="310" />
-            <strong id="qaSpeedCapValue">3.10</strong>
+            <input id="qaSpeedCap" type="range" min="180" max="350" value="265" />
+            <strong id="qaSpeedCapValue">2.65</strong>
           </label>
           <label>
             <span>숫자 크기</span>

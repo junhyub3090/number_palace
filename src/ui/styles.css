@@ -60,7 +60,7 @@ button {
 
 #gameCanvas {
   width: min(100%, 620px);
-  aspect-ratio: 8 / 9;
+  aspect-ratio: 32 / 39;
   height: auto;
   display: block;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -98,15 +98,15 @@ button {
 }
 
 .panel-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
 }
 
 .panel-actions {
-  flex: 0 0 auto;
-  display: flex;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
 }
 
@@ -127,6 +127,7 @@ p {
 h1 {
   font-size: 24px;
   line-height: 1.06;
+  word-break: keep-all;
 }
 
 h2 {
@@ -135,15 +136,20 @@ h2 {
   font-weight: 800;
 }
 
+#lobbyButton,
 #pauseButton,
 #deathButton,
 #restartButton {
-  flex: 0 0 auto;
-  padding: 8px 11px;
-  font-size: 14px;
+  min-width: 0;
+  min-height: 35px;
+  padding: 8px 6px;
+  font-size: 13px;
   font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
+#lobbyButton,
 #pauseButton {
   background: var(--panel-strong);
   border: 1px solid var(--line);
@@ -386,10 +392,6 @@ h2 {
 
   h1 {
     font-size: 24px;
-  }
-
-  .panel-top {
-    align-items: center;
   }
 
   .history-list {

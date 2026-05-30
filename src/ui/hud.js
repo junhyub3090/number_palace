@@ -6,9 +6,9 @@
       historyList: documentRef.getElementById("historyList"),
       messageBox: documentRef.getElementById("messageBox"),
       remainingTimeValue: documentRef.getElementById("remainingTimeValue"),
-      timeValue: documentRef.getElementById("timeValue"),
       boostValue: documentRef.getElementById("boostValue"),
-      finalTimeValue: documentRef.getElementById("finalTimeValue"),
+      scoreValue: documentRef.getElementById("scoreValue"),
+      solvedCountValue: documentRef.getElementById("solvedCountValue"),
     };
   }
 
@@ -23,10 +23,9 @@
   function renderLiveStats(elements, stats) {
     const remainingMs = Math.max(0, stats.tuning.timeLimitSeconds * 1000 - stats.elapsedMs);
     elements.remainingTimeValue.textContent = formatTime(remainingMs);
-    elements.timeValue.textContent = formatTime(stats.elapsedMs);
     elements.boostValue.textContent = String(stats.speedStack);
-    elements.finalTimeValue.textContent =
-      stats.finalTimeMs === null ? "-" : formatTime(stats.finalTimeMs);
+    elements.scoreValue.textContent = String(stats.gameState.score);
+    elements.solvedCountValue.textContent = String(stats.gameState.solvedCount);
   }
 
   function renderHud(elements, core, viewState) {
@@ -73,7 +72,7 @@
     core.sortHistoryForDisplay(history).forEach((entry) => {
       const item = document.createElement("li");
       const guess = entry.guess.map((digit) => `<span>${digit}</span>`).join("");
-      item.innerHTML = `<span class="history-guess">${guess}</span><span class="history-score">${entry.strikes}S</span>`;
+      item.innerHTML = `<span class="history-guess">${guess}</span><span class="history-score">${entry.strikes}S · +${entry.points}</span>`;
       container.appendChild(item);
     });
   }

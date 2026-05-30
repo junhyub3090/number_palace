@@ -26,11 +26,11 @@
   let flashAmount;
   let flashColor;
   let message;
+  let boostPower;
   let speedStack;
   let startTime;
   let elapsedMs;
-  let finalTimeMs;
-  let combo;
+  let guessFlight;
   let lastGuessPulse;
   let timedOut;
 
@@ -54,36 +54,50 @@
     lastFrame = performance.now();
     startTime = lastFrame;
     elapsedMs = 0;
-    finalTimeMs = null;
     timedOut = false;
     spawnCounter = 0;
     shakeAmount = 0;
     flashAmount = 0;
     flashColor = "rgba(255,255,255,0)";
+    boostPower = 0;
     speedStack = 0;
-    combo = 0;
+    guessFlight = null;
     lastGuessPulse = null;
-    message = "빈칸은 가속, 박치기는 감속. 3개를 먹으면 조합 추측!";
+    message = "제한시간 동안 1S 이상 추측해서 점수를 모으세요.";
     effects.reset();
     spawnWave();
     renderHud();
   }
 
   function speedMultiplier() {
-    const boost = speedStack * tuning.boostGain;
+    const elapsedSeconds = elapsedMs / 1000;
+    const baseAcceleration = Number.isFinite(tuning.baseAcceleration)
+      ? tuning.baseAcceleration
+      : config.DEFAULT_TUNING.baseAcceleration;
+    const boostGain = Number.isFinite(tuning.boostGain)
+      ? tuning.boostGain
+      : config.DEFAULT_TUNING.boostGain;
+    const speedCap = Number.isFinite(tuning.speedCap)
+      ? tuning.speedCap
+      : config.DEFAULT_TUNING.speedCap;
+    const baseRamp = Math.min(0.85, elapsedSeconds * baseAcceleration);
+    const boost = boostPower * boostGain;
     return Math.min(
-      tuning.speedCap,
-      1 + boost + Math.min(0.14, gameState.history.length * 0.018),
+      speedCap,
+      1 + baseRamp + boost + Math.min(0.12, gameState.totalGuesses * 0.004),
     );
   }
 
   function spawnWave() {
     const base = core.createWave(Math.random, nextExcluded);
+    const baseWaveSpeed = Number.isFinite(tuning.baseWaveSpeed)
+      ? tuning.baseWaveSpeed
+      : config.DEFAULT_TUNING.baseWaveSpeed;
     nextExcluded = [];
     wave = {
       id: spawnCounter++,
       y: -86,
-      speed: tuning.baseWaveSpeed + Math.min(72, gameState.history.length * 8),
+      speed: baseWaveSpeed + Math.min(72, gameState.totalGuesses * 3),
       handled: false,
       consumedLane: null,
       crashed: false,
@@ -93,7 +107,7 @@
   }
 
   function moveLane(delta) {
-    if (gameState.solved || timedOut) return;
+    if (timedOut) return;
 
     const nextLane = Math.max(0, Math.min(config.LANES - 1, playerLane + delta));
     if (nextLane !== playerLane) {
@@ -110,7 +124,7 @@
   }
 
   function startFlip(now) {
-    if (gameState.solved || timedOut || now - lastFlipAt < config.FLIP_COOLDOWN) return;
+    if (timedOut || now - lastFlipAt < config.FLIP_COOLDOWN) return;
 
     audio.ensureAudio();
     flipUntil = now + config.FLIP_DURATION;
@@ -151,9 +165,16 @@
     shakeAmount = Math.max(shakeAmount, amount * tuning.shakeIntensity);
   }
 
-  function boostFromEmpty() {
-    speedStack = Math.min(config.MAX_SPEED_STACK, speedStack + 1);
-    combo += 1;
+  function addBoost(amount, label) {
+    const previous = speedStack;
+    speedStack = Math.min(config.MAX_SPEED_STACK, speedStack + amount);
+    const gained = speedStack - previous;
+
+    if (gained <= 0) {
+      message = "부스트 최대";
+      return;
+    }
+
     shake(5);
     effects.flashLane(playerLane, "#4ac7a5", 0.55);
     flash("rgba(74,199,165,0.25)", 0.38);
@@ -167,18 +188,22 @@
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 32,
-      "BOOST +1",
+      `${label} +${gained}`,
       "#4ac7a5",
       1,
     );
-    message = "빈칸 부스트 +1";
+    message = `${label} +${gained}`;
     audio.playEffect("boost");
   }
 
-  function collectNumber(item) {
-    const before = gameState.history.length;
+  function boostFromEmpty() {
+    addBoost(1, "BOOST");
+  }
+
+  function collectNumber(item, now) {
+    const before = gameState.totalGuesses;
+    const previousKnownDigits = gameState.knownDigits.slice();
     const x = renderer.laneCenter(item.lane);
-    combo += 1;
     wave.consumedLane = item.lane;
     gameState = core.collectDigit(gameState, item.value);
     shake(7);
@@ -189,32 +214,47 @@
     message = `${item.value} 수집 · ${gameState.currentGuess.length}/3`;
     audio.playEffect("collect");
 
-    if (gameState.history.length > before) {
-      showGuessResult(gameState.history[0]);
+    if (gameState.totalGuesses > before) {
+      startGuessFlight(gameState.lastResult, previousKnownDigits, now);
+      if (gameState.lastResult.strikes === 3) {
+        showRoundClear(gameState.lastResult);
+      } else {
+        showGuessResult(gameState.lastResult);
+      }
     }
+  }
 
-    if (gameState.solved) {
-      showClearResult();
-    }
+  function startGuessFlight(last, previousKnownDigits, now) {
+    guessFlight = {
+      duration: 680,
+      finalKnownDigits: last.strikes === 3 ? last.secret.slice() : gameState.knownDigits.slice(),
+      guess: last.guess.slice(),
+      previousKnownDigits: previousKnownDigits.slice(),
+      startedAt: now,
+    };
   }
 
   function showGuessResult(last) {
     lastGuessPulse = {
-      text: `${last.guess.join("")}  ${last.strikes}S`,
+      text: `${last.guess.join("")}  ${last.strikes}S  +${last.points}`,
       life: 1.25,
       maxLife: 1.25,
     };
     flash("rgba(107,168,255,0.26)", 0.45);
     effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#6ba8ff", scaledEffectCount(30), 360);
-    message = `${last.guess.join("")}: ${last.strikes}S`;
+    message = `${last.guess.join("")}: ${last.strikes}S · +${last.points}`;
     audio.playEffect("guess");
   }
 
-  function showClearResult() {
-    finalTimeMs = elapsedMs;
+  function showRoundClear(last) {
+    lastGuessPulse = {
+      text: `${last.guess.join("")}  정답  +${last.points}`,
+      life: 1.35,
+      maxLife: 1.35,
+    };
     flash("rgba(241,211,91,0.38)", 0.7);
     effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", scaledEffectCount(48), 460);
-    message = `정답 ${gameState.secret.join("")} · ${hud.formatTime(finalTimeMs)}`;
+    message = `정답 ${last.secret.join("")} · +${last.points} · 다음 문제`;
     audio.playEffect("clear");
   }
 
@@ -222,7 +262,6 @@
     nextExcluded = waveDigits(wave);
     const lost = Math.min(speedStack, 2);
     speedStack = Math.max(0, speedStack - 2);
-    combo = 0;
     wave.crashed = true;
     shake(18);
     effects.flashLane(playerLane, "#ff6f61", 0.75);
@@ -262,7 +301,7 @@
     }
 
     if (now < flipUntil) {
-      collectNumber(item);
+      collectNumber(item, now);
     } else {
       crashIntoNumber();
     }
@@ -271,15 +310,7 @@
   }
 
   function passEmptyWhileFlipping() {
-    effects.flashLane(playerLane, "#6ba8ff", 0.24);
-    effects.addFloater(
-      renderer.laneCenter(playerLane),
-      config.CATCH_Y - 34,
-      "PASS",
-      "#9fc5ff",
-      0.72,
-    );
-    message = "공중제비 중 빈칸 통과 · 부스트 없음";
+    addBoost(2, "JUMP BOOST");
   }
 
   function updateLastGuessPulse(dt) {
@@ -291,11 +322,30 @@
     }
   }
 
+  function updateGuessFlight(timestamp) {
+    if (!guessFlight) return;
+
+    if (timestamp - guessFlight.startedAt > guessFlight.duration) {
+      guessFlight = null;
+    }
+  }
+
+  function updateBoostPower(dt) {
+    const delta = speedStack - boostPower;
+    if (Math.abs(delta) < 0.01) {
+      boostPower = speedStack;
+      return;
+    }
+
+    const response = delta > 0 ? 3.6 : 5.4;
+    boostPower += delta * Math.min(1, dt * response);
+  }
+
   function update(timestamp) {
     const dt = Math.min(0.033, (timestamp - lastFrame) / 1000);
     lastFrame = timestamp;
 
-    if (!gameState.solved && !timedOut) {
+    if (!timedOut) {
       elapsedMs = timestamp - startTime;
       if (elapsedMs >= tuning.timeLimitSeconds * 1000) {
         handleTimeout();
@@ -305,7 +355,7 @@
     const speed = speedMultiplier();
     effects.updateStars(dt, speed, speedStack);
 
-    if (!gameState.solved && !timedOut) {
+    if (!timedOut) {
       wave.y += wave.speed * speed * dt;
       handleCatch(timestamp);
 
@@ -314,8 +364,10 @@
       }
     }
 
+    updateBoostPower(dt);
     effects.update(dt);
     updateLastGuessPulse(dt);
+    updateGuessFlight(timestamp);
     shakeAmount *= 0.84;
     flashAmount *= 0.84;
     renderer.draw(createRenderSnapshot(timestamp));
@@ -326,8 +378,7 @@
   function handleTimeout() {
     timedOut = true;
     elapsedMs = tuning.timeLimitSeconds * 1000;
-    finalTimeMs = elapsedMs;
-    message = "시간 종료. 새 게임으로 다시 도전!";
+    message = `시간 종료 · ${gameState.score}점 · 정답 ${gameState.solvedCount}개`;
     flash("rgba(255,111,97,0.28)", 0.55);
     effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#ff6f61", scaledEffectCount(32), 360);
     audio.playEffect("crash");
@@ -337,7 +388,6 @@
   function createViewState() {
     return {
       elapsedMs,
-      finalTimeMs,
       gameState,
       message,
       nextExcluded,
@@ -355,6 +405,7 @@
       flashAmount,
       flashColor,
       flipUntil,
+      guessFlight,
       lastGuessPulse,
       playerLane,
       shakeAmount,

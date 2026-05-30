@@ -16,13 +16,14 @@
     MAX_SPEED_STACK: 8,
     BASE_WAVE_SPEED: 220,
     DEFAULT_TUNING: {
+      baseAcceleration: 0.02,
       baseWaveSpeed: 220,
-      boostGain: 0.08,
+      boostGain: 0.12,
       effectIntensity: 0.55,
       itemSize: 60,
       playerScale: 0.9,
       shakeIntensity: 0.45,
-      speedCap: 2.25,
+      speedCap: 2.6,
       timeLimitSeconds: 90,
     },
   };

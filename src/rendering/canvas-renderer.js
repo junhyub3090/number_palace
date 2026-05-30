@@ -23,14 +23,33 @@
     function draw(snapshot) {
       const shakeX = (Math.random() - 0.5) * snapshot.shakeAmount;
       const shakeY = (Math.random() - 0.5) * snapshot.shakeAmount;
+      const cameraScale = cameraScaleFor(snapshot);
+
+      ctx.fillStyle = "#101114";
+      ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
 
       ctx.save();
       ctx.translate(shakeX, shakeY);
+      ctx.translate(config.WIDTH / 2, config.HEIGHT * 0.54);
+      ctx.scale(cameraScale, cameraScale);
+      ctx.translate(-config.WIDTH / 2, -config.HEIGHT * 0.54);
       drawTrack(snapshot);
-      drawWave(snapshot.wave, snapshot.playerLane, snapshot.tuning.itemSize);
+      drawWave(
+        snapshot.wave,
+        snapshot.playerLane,
+        snapshot.tuning.itemSize,
+        snapshot.gameState.rejectedDigits,
+      );
       drawPlayer(snapshot);
+      drawHeldDigits(snapshot);
       drawParticles(snapshot.effects.particles);
       drawFloaters(snapshot.effects.floaters);
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(shakeX, shakeY);
+      drawKnownDigitsBanner(snapshot.gameState.knownDigits, snapshot.guessFlight);
+      drawGuessFlight(snapshot);
       drawOverlay(snapshot);
       ctx.restore();
 
@@ -43,13 +62,21 @@
       }
     }
 
+    function cameraScaleFor(snapshot) {
+      const speed = typeof snapshot.speedMultiplier === "function"
+        ? snapshot.speedMultiplier()
+        : 1;
+      const pullback = Math.max(0, Math.min(0.1, (speed - 1) * 0.045));
+      return 1 - pullback;
+    }
+
     function drawTrack(snapshot) {
       const grd = ctx.createLinearGradient(0, 0, 0, config.HEIGHT);
       grd.addColorStop(0, "#15282d");
       grd.addColorStop(0.45, "#20262e");
       grd.addColorStop(1, "#111214");
       ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
+      ctx.fillRect(-80, -80, config.WIDTH + 160, config.HEIGHT + 160);
 
       ctx.fillStyle = "rgba(255,255,255,0.78)";
       snapshot.effects.stars.forEach((star) => {
@@ -102,8 +129,10 @@
       ctx.setLineDash([]);
     }
 
-    function drawWave(wave, playerLane, itemSize) {
+    function drawWave(wave, playerLane, itemSize, rejectedDigits) {
       if (!wave) return;
+
+      const rejected = new Set(rejectedDigits || []);
 
       wave.items.forEach((item) => {
         if (item.kind === "empty") {
@@ -116,11 +145,13 @@
         const handled = wave.handled && item.lane === playerLane;
         const pulse = handled ? 0.44 : 1;
         const danger = wave.crashed && item.lane === playerLane;
+        const knownMiss = rejected.has(item.value);
 
         ctx.save();
         ctx.globalAlpha = pulse;
-        ctx.shadowColor = danger ? "rgba(255,111,97,0.65)" : "rgba(0,0,0,0.38)";
-        ctx.shadowBlur = danger ? 26 : 16;
+        ctx.shadowColor =
+          danger || knownMiss ? "rgba(255,111,97,0.72)" : "rgba(0,0,0,0.38)";
+        ctx.shadowBlur = danger || knownMiss ? 26 : 16;
         ctx.shadowOffsetY = 10;
         roundedRect(
           x - itemSize / 2,
@@ -132,8 +163,8 @@
         ctx.fillStyle = danger ? "#ff6f61" : "#f2d55b";
         ctx.fill();
         ctx.shadowColor = "transparent";
-        ctx.strokeStyle = "rgba(20,20,20,0.35)";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = knownMiss ? "#ff6f61" : "rgba(20,20,20,0.35)";
+        ctx.lineWidth = knownMiss ? 5 : 3;
         ctx.stroke();
 
         ctx.fillStyle = danger ? "#2a0907" : "#17140a";
@@ -178,6 +209,10 @@
       const armStride = Math.sin(run + Math.PI) * (flipping ? 0.2 : 1);
       const y = config.PLAYER_Y - lift;
       const playerScale = snapshot.tuning.playerScale;
+
+      if (snapshot.speedStack >= config.MAX_SPEED_STACK) {
+        drawMaxBoostAura(x, y, snapshot.timestamp);
+      }
 
       if (flipping) {
         ctx.save();
@@ -280,6 +315,207 @@
       ctx.restore();
     }
 
+    function drawMaxBoostAura(x, y, timestamp) {
+      const pulse = 0.82 + Math.sin(timestamp / 74) * 0.12;
+      const flicker = Math.sin(timestamp / 37) * 6;
+
+      ctx.save();
+      ctx.translate(x, y + 16);
+      ctx.globalCompositeOperation = "lighter";
+
+      for (let index = 0; index < 7; index += 1) {
+        const angle = (index / 7) * Math.PI * 2 + timestamp / 260;
+        const flameX = Math.cos(angle) * (28 + Math.sin(timestamp / 90 + index) * 8);
+        const flameY = Math.sin(angle) * 10 + 14;
+        const height = 82 + Math.sin(timestamp / 62 + index) * 18;
+
+        const gradient = ctx.createLinearGradient(flameX, flameY + 38, flameX, flameY - height);
+        gradient.addColorStop(0, "rgba(255,111,97,0)");
+        gradient.addColorStop(0.28, "rgba(255,111,97,0.72)");
+        gradient.addColorStop(0.68, "rgba(241,211,91,0.78)");
+        gradient.addColorStop(1, "rgba(255,255,255,0.2)");
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(flameX - 22 * pulse, flameY + 34);
+        ctx.quadraticCurveTo(flameX - 36, flameY - 18, flameX + flicker, flameY - height);
+        ctx.quadraticCurveTo(flameX + 38, flameY - 16, flameX + 22 * pulse, flameY + 34);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = "rgba(241,211,91,0.74)";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(0, 2, 58 + Math.sin(timestamp / 88) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawHeldDigits(snapshot) {
+      const x = laneCenter(snapshot.playerLane);
+      const y = config.PLAYER_Y + 86;
+      const digits = snapshot.gameState.currentGuess;
+      const slotSize = 30;
+      const gap = 6;
+      const totalWidth = slotSize * 3 + gap * 2;
+      const left = x - totalWidth / 2;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(16,17,20,0.74)";
+      roundedRect(left - 10, y - 22, totalWidth + 20, 44, 8);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(241,211,91,0.56)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      for (let index = 0; index < 3; index += 1) {
+        const slotX = left + index * (slotSize + gap);
+        const digit = digits[index];
+        roundedRect(slotX, y - slotSize / 2, slotSize, slotSize, 6);
+        ctx.fillStyle = digit ? "#f1d35b" : "rgba(255,255,255,0.1)";
+        ctx.fill();
+        ctx.strokeStyle = digit ? "rgba(20,20,20,0.42)" : "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = digit ? "#17140a" : "rgba(242,242,234,0.42)";
+        ctx.font = "900 18px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(digit ? String(digit) : ".", slotX + slotSize / 2, y + 1);
+      }
+
+      ctx.restore();
+    }
+
+    function drawKnownDigitsBanner(knownDigits, guessFlight) {
+      const digits = guessFlight ? guessFlight.previousKnownDigits : (knownDigits || []);
+      const width = 318;
+      const height = 82;
+      const x = config.WIDTH / 2 - width / 2;
+      const y = 18;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.54)";
+      roundedRect(x, y, width, height, 8);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(241,211,91,0.42)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#aeb3aa";
+      ctx.font = "900 13px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("알아낸 숫자", config.WIDTH / 2, y + 18);
+
+      const slotSize = 38;
+      const gap = 10;
+      const totalWidth = 3 * slotSize + 2 * gap;
+      const left = config.WIDTH / 2 - totalWidth / 2;
+
+      for (let index = 0; index < 3; index += 1) {
+        const digit = digits[index];
+        const slotX = left + index * (slotSize + gap);
+        const slotY = y + 35;
+        roundedRect(slotX, slotY, slotSize, slotSize, 8);
+        ctx.fillStyle = digit ? "#f1d35b" : "rgba(255,255,255,0.1)";
+        ctx.fill();
+        ctx.strokeStyle = digit ? "rgba(20,20,20,0.36)" : "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = digit ? "#17140a" : "rgba(242,242,234,0.48)";
+        ctx.font = "950 24px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(digit ? String(digit) : ".", slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+      }
+
+      ctx.restore();
+    }
+
+    function drawGuessFlight(snapshot) {
+      const flight = snapshot.guessFlight;
+      if (!flight) return;
+
+      const progress = Math.max(
+        0,
+        Math.min(1, (snapshot.timestamp - flight.startedAt) / flight.duration),
+      );
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const arc = Math.sin(progress * Math.PI) * 74;
+      const startX = laneCenter(snapshot.playerLane);
+      const startY = config.PLAYER_Y + 86;
+      const targetY = 18 + 35 + 19;
+      const slotSize = 38;
+      const gap = 10;
+      const totalWidth = 3 * slotSize + 2 * gap;
+      const targetLeft = config.WIDTH / 2 - totalWidth / 2;
+      const startGap = 38;
+
+      ctx.save();
+      flight.guess.forEach((digit, index) => {
+        const startSlotX = startX + (index - 1) * startGap;
+        const targetX = targetLeft + index * (slotSize + gap) + slotSize / 2;
+        const x = startSlotX + (targetX - startSlotX) * eased;
+        const y = startY + (targetY - startY) * eased - arc;
+        const scale = 1 + Math.sin(progress * Math.PI) * 0.22;
+        const alpha = progress > 0.88 ? Math.max(0, 1 - (progress - 0.88) / 0.12) : 1;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        roundedRect(-17, -17, 34, 34, 7);
+        ctx.fillStyle = "#f1d35b";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(20,20,20,0.38)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#17140a";
+        ctx.font = "950 21px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(digit), 0, 1);
+        ctx.restore();
+      });
+
+      if (progress > 0.82) {
+        const reveal = Math.min(1, (progress - 0.82) / 0.18);
+        drawKnownReveal(flight.finalKnownDigits, reveal);
+      }
+
+      ctx.restore();
+    }
+
+    function drawKnownReveal(knownDigits, alpha) {
+      const digits = knownDigits || [];
+      const slotSize = 38;
+      const gap = 10;
+      const totalWidth = 3 * slotSize + 2 * gap;
+      const left = config.WIDTH / 2 - totalWidth / 2;
+      const y = 18 + 35;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      for (let index = 0; index < 3; index += 1) {
+        const digit = digits[index];
+        const slotX = left + index * (slotSize + gap);
+        roundedRect(slotX, y, slotSize, slotSize, 8);
+        ctx.fillStyle = digit ? "#f1d35b" : "rgba(255,255,255,0.1)";
+        ctx.fill();
+        ctx.strokeStyle = digit ? "rgba(20,20,20,0.36)" : "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = digit ? "#17140a" : "rgba(242,242,234,0.48)";
+        ctx.font = "950 24px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(digit ? String(digit) : ".", slotX + slotSize / 2, y + slotSize / 2 + 1);
+      }
+      ctx.restore();
+    }
+
     function drawParticles(particles) {
       particles.forEach((particle) => {
         ctx.save();
@@ -318,10 +554,10 @@
       ctx.font = "900 18px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(`Guess ${snapshot.gameState.history.length + 1}`, 34, 40);
+      ctx.fillText(`Score ${snapshot.gameState.score}`, 34, 40);
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "800 15px Inter, system-ui, sans-serif";
-      ctx.fillText(`${formatTime(snapshot.elapsedMs)}  ·  Boost ${snapshot.speedStack}`, 34, 65);
+      ctx.fillText(`Solved ${snapshot.gameState.solvedCount}  ·  Boost ${snapshot.speedStack}`, 34, 65);
 
       if (snapshot.lastGuessPulse) {
         const progress = 1 - snapshot.lastGuessPulse.life / snapshot.lastGuessPulse.maxLife;
@@ -340,17 +576,14 @@
         ctx.restore();
       }
 
-      if (snapshot.timedOut && !snapshot.gameState.solved) {
-        drawEndOverlay("시간 종료", "새 게임으로 다시 도전", "#ff6f61");
+      if (snapshot.timedOut) {
+        drawEndOverlay("시간 종료", `${snapshot.gameState.score}점`, "#ff6f61");
+        ctx.fillStyle = "#4ac7a5";
+        ctx.font = "850 26px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`정답 ${snapshot.gameState.solvedCount}개`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
         return;
       }
-
-      if (!snapshot.gameState.solved) return;
-
-      drawEndOverlay("정답!", snapshot.gameState.secret.join(""), "#f1d35b");
-      ctx.fillStyle = "#4ac7a5";
-      ctx.font = "850 26px Inter, system-ui, sans-serif";
-      ctx.fillText(`걸린 시간 ${formatTime(snapshot.finalTimeMs)}`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
     }
 
     function drawEndOverlay(title, subtitle, color) {

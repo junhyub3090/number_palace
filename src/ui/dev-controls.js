@@ -9,6 +9,13 @@
         format: (value) => String(Math.round(value)),
       },
       {
+        id: "qaBaseAcceleration",
+        key: "baseAcceleration",
+        labelId: "qaBaseAccelerationValue",
+        normalize: (value) => Number(value) / 1000,
+        format: (value) => value.toFixed(3),
+      },
+      {
         id: "qaBoostGain",
         key: "boostGain",
         labelId: "qaBoostGainValue",

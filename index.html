@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>러닝 숫자야구</title>
+    <link rel="stylesheet" href="src/ui/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-surface" aria-label="러닝 숫자야구 게임 화면">
+        <canvas id="gameCanvas" width="640" height="720"></canvas>
+        <div class="touch-controls" aria-label="터치 조작">
+          <button type="button" data-action="left" aria-label="왼쪽 레인">←</button>
+          <button type="button" data-action="flip" aria-label="공중제비">␣</button>
+          <button type="button" data-action="right" aria-label="오른쪽 레인">→</button>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="panel-top">
+          <div>
+            <p class="kicker">Running Baseball</p>
+            <h1>러닝 숫자야구</h1>
+          </div>
+          <button id="restartButton" type="button">새 게임</button>
+        </div>
+
+        <section class="status-block">
+          <h2>플레이 상태</h2>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <span>시간</span>
+              <strong id="timeValue">00:00.0</strong>
+            </div>
+            <div class="stat-card">
+              <span>속도</span>
+              <strong id="speedValue">x1.00</strong>
+            </div>
+            <div class="stat-card">
+              <span>부스트</span>
+              <strong id="boostValue">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>클리어</span>
+              <strong id="finalTimeValue">-</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="status-block">
+          <h2>현재 추측</h2>
+          <div id="guessSlots" class="guess-slots" aria-live="polite"></div>
+        </section>
+
+        <section class="status-block">
+          <h2>다음 제외</h2>
+          <div id="excludedDigits" class="excluded-digits" aria-live="polite"></div>
+        </section>
+
+        <section class="status-block">
+          <h2>결과 (S 순)</h2>
+          <ol id="historyList" class="history-list" aria-live="polite"></ol>
+        </section>
+
+        <div id="messageBox" class="message-box" aria-live="polite"></div>
+      </aside>
+    </main>
+
+    <script src="src/core/game-core.js"></script>
+    <script src="src/game/config.js"></script>
+    <script src="src/game/audio.js"></script>
+    <script src="src/game/effects.js"></script>
+    <script src="src/ui/hud.js"></script>
+    <script src="src/rendering/canvas-renderer.js"></script>
+    <script src="src/game/game.js"></script>
+  </body>
+</html>

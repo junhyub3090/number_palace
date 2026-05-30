@@ -1,0 +1,74 @@
+(function attachAudio(global) {
+  function createAudioController() {
+    let audioContext = null;
+
+    function ensureAudio() {
+      const AudioContext = global.AudioContext || global.webkitAudioContext;
+
+      if (audioContext) {
+        if (audioContext.state === "suspended") {
+          audioContext.resume();
+        }
+        return;
+      }
+
+      if (!AudioContext) return;
+      audioContext = new AudioContext();
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+    }
+
+    function playTone(frequency, duration, type, volume, delay) {
+      if (!audioContext) return;
+
+      const start = audioContext.currentTime + (delay || 0);
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      oscillator.type = type || "sine";
+      oscillator.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(volume || 0.06, start + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration + 0.02);
+    }
+
+    function playEffect(kind) {
+      if (kind === "flip") {
+        playTone(440, 0.08, "triangle", 0.045, 0);
+        playTone(690, 0.11, "triangle", 0.035, 0.045);
+      } else if (kind === "boost") {
+        playTone(380, 0.08, "sawtooth", 0.035, 0);
+        playTone(760, 0.16, "triangle", 0.055, 0.055);
+      } else if (kind === "collect") {
+        playTone(520, 0.07, "square", 0.045, 0);
+        playTone(980, 0.11, "triangle", 0.05, 0.06);
+      } else if (kind === "guess") {
+        playTone(420, 0.09, "triangle", 0.045, 0);
+        playTone(620, 0.09, "triangle", 0.045, 0.08);
+        playTone(860, 0.16, "triangle", 0.055, 0.16);
+      } else if (kind === "crash") {
+        playTone(120, 0.16, "sawtooth", 0.075, 0);
+        playTone(72, 0.22, "square", 0.045, 0.04);
+      } else if (kind === "clear") {
+        playTone(520, 0.1, "triangle", 0.05, 0);
+        playTone(720, 0.1, "triangle", 0.05, 0.1);
+        playTone(1040, 0.24, "triangle", 0.06, 0.2);
+      }
+    }
+
+    return {
+      ensureAudio,
+      playEffect,
+    };
+  }
+
+  global.RunningBaseballAudio = {
+    createAudioController,
+  };
+})(typeof globalThis !== "undefined" ? globalThis : this);

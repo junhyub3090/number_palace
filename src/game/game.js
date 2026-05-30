@@ -123,7 +123,7 @@
   }
 
   function timeLimitMs() {
-    return Math.max(1, tuning.timeLimitSeconds || 300) * 1000;
+    return Math.max(1, tuning.timeLimitSeconds || 120) * 1000;
   }
 
   function remainingMs() {

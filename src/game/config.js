@@ -26,7 +26,7 @@
       playerScale: 0.9,
       shakeIntensity: 0.45,
       speedCap: 2.65,
-      timeLimitSeconds: 300,
+      timeLimitSeconds: 120,
     },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

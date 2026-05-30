@@ -107,28 +107,48 @@
     const logoutBtn = document.getElementById('logoutBtn');
 
     // 인증 상태 확인
-    FirebaseApi.onAuthStateChanged((user) => {
+    FirebaseApi.onAuthStateChanged(async (user) => {
       if (!user) {
-        window.location.replace('login.html');
+        // 로그인 상태가 아예 없으면 자동 게스트 로그인 시도
+        try {
+          await FirebaseApi.signInAsGuest();
+        } catch (error) {
+          userInfoEl.textContent = '게스트 로그인 실패. 파이어베이스 콘솔에서 익명 로그인을 활성화했는지 확인해주세요.';
+          userInfoEl.style.color = 'var(--danger)';
+          userInfoEl.style.background = 'rgba(255, 111, 97, 0.1)';
+          userInfoEl.style.border = '1px solid rgba(255, 111, 97, 0.2)';
+        }
       } else {
-        userInfoEl.textContent = `환영합니다, ${user.displayName || user.email || '플레이어'}님!`;
+        if (user.isAnonymous) {
+          userInfoEl.textContent = '게스트 모드로 접속 중입니다.';
+          logoutBtn.textContent = '구글 로그인 연동 (기록 저장)';
+          logoutBtn.classList.remove('btn-secondary');
+          logoutBtn.classList.add('btn-primary');
+          
+          logoutBtn.onclick = () => {
+            window.location.href = 'login.html';
+          };
+        } else {
+          userInfoEl.textContent = `환영합니다, ${user.displayName || user.email || '플레이어'}님!`;
+          logoutBtn.textContent = '로그아웃';
+          logoutBtn.classList.remove('btn-primary');
+          logoutBtn.classList.add('btn-secondary');
+          
+          logoutBtn.onclick = async () => {
+            try {
+              await FirebaseApi.signOut();
+            } catch (error) {
+              console.error('로그아웃 에러:', error);
+              alert('로그아웃에 실패했습니다.');
+            }
+          };
+        }
       }
     });
 
     // 새 게임 시작
     newGameBtn.addEventListener('click', () => {
       window.location.href = 'index.html';
-    });
-
-    // 로그아웃
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        await FirebaseApi.signOut();
-        // 로그아웃 성공 시 onAuthStateChanged에 의해 자동으로 login.html로 리다이렉트됨
-      } catch (error) {
-        console.error('로그아웃 에러:', error);
-        alert('로그아웃에 실패했습니다.');
-      }
     });
   </script>
 </body>

@@ -127,10 +127,14 @@
   <script type="module">
     import FirebaseApi from './src/firebase/firebaseApi.js';
     
-    FirebaseApi.onAuthStateChanged((user) => {
+    FirebaseApi.onAuthStateChanged(async (user) => {
       if (!user) {
-        // 로그인이 안 되어있으면 로그인 화면으로 이동
-        window.location.replace('login.html');
+        // 로그인 안 되어있으면 게스트 모드로 자동 로그인
+        try {
+          await FirebaseApi.signInAsGuest();
+        } catch (error) {
+          console.error("게스트 로그인 실패. 파이어베이스 익명 로그인을 활성화해주세요.", error);
+        }
       }
     });
 

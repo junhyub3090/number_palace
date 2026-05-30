@@ -103,9 +103,9 @@
     
     const loginBtn = document.getElementById('googleLoginBtn');
     
-    // 이미 로그인되어 있으면 로비 화면으로 리다이렉트
+    // 이미 실제 계정으로 로그인되어 있으면 로비 화면으로 리다이렉트
     FirebaseApi.onAuthStateChanged((user) => {
-      if (user) {
+      if (user && !user.isAnonymous) {
         window.location.replace('lobby.html');
       }
     });

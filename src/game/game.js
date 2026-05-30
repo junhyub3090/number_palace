@@ -290,14 +290,32 @@
   }
 
   function showGuessResult(last) {
+    const isPerfect = last.strikes === 3;
+
     lastGuessPulse = {
-      text: `${last.guess.join("")}  ${last.strikes}S`,
-      life: 1.25,
-      maxLife: 1.25,
+      text: isPerfect ? "정답!" : `${last.guess.join("")}  ${last.strikes}S`,
+      subtext: isPerfect ? `${last.guess.join("")}  3S` : "",
+      success: isPerfect,
+      life: isPerfect ? 1.72 : 1.25,
+      maxLife: isPerfect ? 1.72 : 1.25,
     };
+    message = `${last.guess.join("")}: ${last.strikes}S`;
+
+    if (isPerfect) {
+      shake(18);
+      flash("rgba(241,211,91,0.62)", 0.96);
+      effects.burst(config.WIDTH / 2, config.HEIGHT / 2 - 18, "#f1d35b", scaledEffectCount(76), 660);
+      effects.burst(config.WIDTH / 2, config.HEIGHT / 2 - 18, "#f2f2ea", scaledEffectCount(34), 520);
+
+      for (let lane = 0; lane < config.LANES; lane += 1) {
+        effects.flashLane(lane, "#f1d35b", 0.58);
+        effects.burst(renderer.laneCenter(lane), config.CATCH_Y, "#f1d35b", scaledEffectCount(10), 360);
+      }
+      return;
+    }
+
     flash("rgba(107,168,255,0.26)", 0.45);
     effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#6ba8ff", scaledEffectCount(30), 360);
-    message = `${last.guess.join("")}: ${last.strikes}S`;
     audio.playEffect("guess");
   }
 
@@ -313,10 +331,14 @@
     const solvedSecret = gameState.secret.join("");
     const guessCount = gameState.history.length;
     lastSetPoints = setScoreForGuessCount(guessCount);
+    if (lastGuessPulse && lastGuessPulse.success) {
+      lastGuessPulse.points = `+${lastSetPoints}`;
+    }
     score += lastSetPoints;
     clearedSets += 1;
-    flash("rgba(241,211,91,0.38)", 0.7);
-    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", scaledEffectCount(48), 460);
+    shake(14);
+    flash("rgba(241,211,91,0.48)", 0.86);
+    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", scaledEffectCount(64), 560);
     effects.addFloater(
       config.WIDTH / 2,
       config.HEIGHT / 2 + 54,

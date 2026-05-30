@@ -53,7 +53,9 @@
       } else if (kind === "clear") {
         playTone(520, 0.1, "triangle", 0.05, 0);
         playTone(720, 0.1, "triangle", 0.05, 0.1);
-        playTone(1040, 0.24, "triangle", 0.06, 0.2);
+        playTone(920, 0.1, "triangle", 0.052, 0.18);
+        playTone(1240, 0.18, "triangle", 0.065, 0.26);
+        playTone(1560, 0.24, "sine", 0.052, 0.34);
       }
     }
 

@@ -589,22 +589,7 @@
       drawPickTray(snapshot);
       drawNextPreview(snapshot);
 
-      if (snapshot.lastGuessPulse) {
-        const progress = 1 - snapshot.lastGuessPulse.life / snapshot.lastGuessPulse.maxLife;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, snapshot.lastGuessPulse.life / snapshot.lastGuessPulse.maxLife);
-        ctx.translate(config.WIDTH / 2, config.HEIGHT / 2 - 18);
-        ctx.scale(1 + progress * 0.18, 1 + progress * 0.18);
-        ctx.fillStyle = "#6ba8ff";
-        ctx.strokeStyle = "rgba(0,0,0,0.55)";
-        ctx.lineWidth = 10;
-        ctx.font = numberFont(52);
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.strokeText(snapshot.lastGuessPulse.text, 0, 0);
-        ctx.fillText(snapshot.lastGuessPulse.text, 0, 0);
-        ctx.restore();
-      }
+      drawGuessPulse(snapshot.lastGuessPulse);
 
       if (snapshot.gameEnded) {
         const title = snapshot.endReason === "time" ? "시간 종료" : "게임 종료";
@@ -625,6 +610,91 @@
         drawEndOverlay("일시정지", "P 또는 버튼으로 재개", "#6ba8ff");
         return;
       }
+    }
+
+    function drawGuessPulse(pulse) {
+      if (!pulse) return;
+
+      if (pulse.success) {
+        drawSuccessPulse(pulse);
+        return;
+      }
+
+      const progress = 1 - pulse.life / pulse.maxLife;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, pulse.life / pulse.maxLife);
+      ctx.translate(config.WIDTH / 2, config.HEIGHT / 2 - 18);
+      ctx.scale(1 + progress * 0.18, 1 + progress * 0.18);
+      ctx.fillStyle = "#6ba8ff";
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
+      ctx.lineWidth = 10;
+      ctx.font = numberFont(52);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.strokeText(pulse.text, 0, 0);
+      ctx.fillText(pulse.text, 0, 0);
+      ctx.restore();
+    }
+
+    function drawSuccessPulse(pulse) {
+      const progress = 1 - pulse.life / pulse.maxLife;
+      const alpha = Math.max(0, pulse.life / pulse.maxLife);
+      const centerX = config.WIDTH / 2;
+      const centerY = config.HEIGHT / 2 - 22;
+      const ringSize = 72 + progress * 132;
+      const secondRingSize = 112 + progress * 172;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      const glow = ctx.createRadialGradient(centerX, centerY, 12, centerX, centerY, 230);
+      glow.addColorStop(0, "rgba(241,211,91,0.34)");
+      glow.addColorStop(0.42, "rgba(241,211,91,0.14)");
+      glow.addColorStop(1, "rgba(241,211,91,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
+
+      ctx.translate(centerX, centerY);
+      ctx.rotate(progress * 0.08);
+      ctx.strokeStyle = `rgba(241,211,91,${0.82 * alpha})`;
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringSize, -Math.PI * 0.14, Math.PI * 1.14);
+      ctx.stroke();
+
+      ctx.strokeStyle = `rgba(242,242,234,${0.5 * alpha})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, secondRingSize, Math.PI * 0.18, Math.PI * 1.55);
+      ctx.stroke();
+
+      ctx.scale(1 + Math.sin(progress * Math.PI) * 0.12, 1 + Math.sin(progress * Math.PI) * 0.12);
+      ctx.fillStyle = "#f1d35b";
+      ctx.strokeStyle = "rgba(0,0,0,0.62)";
+      ctx.lineWidth = 12;
+      ctx.font = numberFont(70);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.strokeText(pulse.text, 0, -8);
+      ctx.fillText(pulse.text, 0, -8);
+
+      ctx.fillStyle = "#f2f2ea";
+      ctx.strokeStyle = "rgba(0,0,0,0.48)";
+      ctx.lineWidth = 7;
+      ctx.font = numberFont(28, 900);
+      ctx.strokeText(pulse.subtext || "3S", 0, 53);
+      ctx.fillText(pulse.subtext || "3S", 0, 53);
+
+      if (pulse.points) {
+        ctx.fillStyle = "#4ac7a5";
+        ctx.strokeStyle = "rgba(0,0,0,0.45)";
+        ctx.lineWidth = 6;
+        ctx.font = numberFont(25, 950);
+        ctx.strokeText(pulse.points, 0, 89);
+        ctx.fillText(pulse.points, 0, 89);
+      }
+
+      ctx.restore();
     }
 
     function drawTopStats(snapshot) {

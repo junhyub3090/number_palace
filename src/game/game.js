@@ -298,7 +298,11 @@
       return digitColor(item.value);
     }
 
-    return "#4ac7a5";
+    return config.BOOST_COLOR || "#f2f2ea";
+  }
+
+  function boostGlowColor() {
+    return config.BOOST_GLOW_COLOR || "#cfe4ff";
   }
 
   function colorWithAlpha(color, alpha) {
@@ -330,23 +334,32 @@
   }
 
   function boostFromEmpty(source) {
+    const color = itemHighlightColor({ kind: "empty" });
+    const glowColor = boostGlowColor();
     speedStack = Math.min(config.MAX_SPEED_STACK, speedStack + 1);
     combo += 1;
     shake(5);
-    effects.flashLane(playerLane, "#4ac7a5", 0.55);
-    flash("rgba(74,199,165,0.25)", 0.38);
+    effects.flashLane(playerLane, color, 0.58);
+    flash(colorWithAlpha(color, 0.26), 0.38);
     effects.burst(
       renderer.laneCenter(playerLane),
       config.CATCH_Y,
-      "#4ac7a5",
+      color,
       scaledEffectCount(16),
       260,
+    );
+    effects.burst(
+      renderer.laneCenter(playerLane),
+      config.CATCH_Y,
+      glowColor,
+      scaledEffectCount(8),
+      220,
     );
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 32,
       `BOOST ${speedStack}`,
-      "#4ac7a5",
+      glowColor,
       1,
     );
     message = source === "dash"
@@ -483,7 +496,7 @@
   }
 
   function collectHintFromEmpty() {
-    const color = "#4ac7a5";
+    const color = itemHighlightColor({ kind: "empty" });
     hintProgress = Math.min(3, hintProgress + 1);
     combo += 1;
     shake(4);
@@ -500,7 +513,7 @@
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 38,
       `HINT ${hintProgress}/3`,
-      "#aef4dc",
+      boostGlowColor(),
       0.84,
     );
     audio.playEffect("guess");

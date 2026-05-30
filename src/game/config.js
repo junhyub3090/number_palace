@@ -2,6 +2,8 @@
   const WIDTH = 560;
   const HEIGHT = 1040;
   const LANES = 4;
+  const BOOST_COLOR = "#f2f2ea";
+  const BOOST_GLOW_COLOR = "#cfe4ff";
   const DIGIT_TILE_COLORS = [
     "#d6bb57",
     "#68b89b",
@@ -27,6 +29,8 @@
     WIDTH,
     HEIGHT,
     LANES,
+    BOOST_COLOR,
+    BOOST_GLOW_COLOR,
     DIGIT_TILE_COLORS,
     LANE_WIDTH: WIDTH / LANES,
     PLAYER_Y: HEIGHT - 118,

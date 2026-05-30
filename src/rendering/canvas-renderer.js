@@ -44,6 +44,14 @@
       return "#d6bb57";
     }
 
+    function boostColor() {
+      return config.BOOST_COLOR || "#f2f2ea";
+    }
+
+    function boostGlowColor() {
+      return config.BOOST_GLOW_COLOR || "#cfe4ff";
+    }
+
     function numberFont(size, weight = 950) {
       return `${weight} ${Math.round(size)}px ${NUMBER_FONT_FAMILY}`;
     }
@@ -225,7 +233,7 @@
 
       ctx.save();
       ctx.globalAlpha = 0.06 + intensity * 0.11;
-      ctx.strokeStyle = "#4ac7a5";
+      ctx.strokeStyle = boostGlowColor();
       ctx.lineWidth = 1.2;
       ctx.setLineDash([18, 28]);
       const center = viewportWidth / 2;
@@ -315,7 +323,7 @@
       const activeItem = snapshot.wave
         ? snapshot.wave.items.find((item) => item.lane === snapshot.playerLane)
         : null;
-      const zoneColor = activeItem && activeItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
+      const zoneColor = activeItem && activeItem.kind === "empty" ? boostColor() : "#f1d35b";
       const waveY = snapshot.wave ? snapshot.wave.y : -Infinity;
       const approaching =
         snapshot.wave &&
@@ -330,7 +338,7 @@
           ? `rgba(241,211,91,${approaching ? 0.18 : 0.09})`
           : "rgba(255,255,255,0.025)";
         if (activeLane && activeItem && activeItem.kind === "empty") {
-          ctx.fillStyle = `rgba(74,199,165,${approaching ? 0.17 : 0.08})`;
+          ctx.fillStyle = colorWithAlpha(boostColor(), approaching ? 0.2 : 0.09);
         }
         ctx.fillRect(x + 10, top, config.LANE_WIDTH - 20, height);
       }
@@ -369,7 +377,7 @@
       const baseDashLength = 22 + stack * 2.2;
 
       ctx.save();
-      ctx.strokeStyle = "#4ac7a5";
+      ctx.strokeStyle = boostGlowColor();
       ctx.lineWidth = 1.4 + intensity * 2.1;
       ctx.lineCap = "round";
 
@@ -507,7 +515,7 @@
         ctx.scale(tilePulse * impactScale, tilePulse * impactScale);
         ctx.globalAlpha = pulse * impactAlpha;
         ctx.shadowColor = inCatchZone || inDashImpact
-          ? "rgba(241,211,91,0.74)"
+          ? colorWithAlpha(digitColor(item.value), 0.74)
           : "rgba(0,0,0,0.38)";
         ctx.shadowBlur = inCatchZone || inDashImpact ? 26 : 14 + boostGlow;
         ctx.shadowOffsetY = 10;
@@ -535,7 +543,7 @@
         });
 
         items.forEach((item) => {
-          const color = item.kind === "empty" ? "#4ac7a5" : digitColor(item.value);
+          const color = item.kind === "empty" ? boostColor() : digitColor(item.value);
           drawPersistentDashTrail(item, itemSize, color, grow, fade);
         });
       });
@@ -694,7 +702,11 @@
 
     function drawDashImpactCue(wave, impact, progress, itemSize) {
       const laneItem = wave.items.find((item) => item.lane === impact.lane);
-      const color = laneItem && laneItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
+      const color = laneItem && laneItem.kind === "empty"
+        ? boostColor()
+        : laneItem && laneItem.kind === "digit"
+          ? digitColor(laneItem.value)
+          : "#f1d35b";
       const x = laneCenter(impact.lane);
       const collisionProgress = impact.collisionProgress || 0.5;
       const preImpactProgress = collisionProgress > 0
@@ -786,18 +798,18 @@
       ctx.translate(x, y);
       ctx.scale(tilePulse, tilePulse);
       ctx.globalAlpha = (nearCatch ? 0.72 : 0.44) * alpha;
-      ctx.strokeStyle = "#4ac7a5";
+      ctx.strokeStyle = boostColor();
       ctx.lineWidth = inCatchZone ? 6 : 4;
-      ctx.shadowColor = inCatchZone ? "rgba(74,199,165,0.64)" : "transparent";
+      ctx.shadowColor = inCatchZone ? colorWithAlpha(boostGlowColor(), 0.74) : "transparent";
       ctx.shadowBlur = inCatchZone ? 24 : 0;
       ctx.setLineDash([10, 10]);
       roundedRect(-itemSize / 2, -itemSize / 2, itemSize, itemSize, 8);
       ctx.stroke();
       ctx.shadowColor = "transparent";
       ctx.setLineDash([]);
-      ctx.fillStyle = inCatchZone ? "rgba(74,199,165,0.16)" : "rgba(74,199,165,0.08)";
+      ctx.fillStyle = inCatchZone ? colorWithAlpha(boostColor(), 0.18) : colorWithAlpha(boostColor(), 0.08);
       ctx.fill();
-      ctx.fillStyle = "#4ac7a5";
+      ctx.fillStyle = boostGlowColor();
       ctx.font = numberFont(Math.max(12, itemSize * 0.21), 900);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -1232,11 +1244,11 @@
       ctx.fillStyle = "rgba(16,17,20,0.62)";
       roundedRect(x, y, width, height, 8);
       ctx.fill();
-      ctx.strokeStyle = `rgba(74,199,165,${0.35 + level * 0.4})`;
+      ctx.strokeStyle = colorWithAlpha(boostColor(), 0.28 + level * 0.46);
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      ctx.fillStyle = "#aef4dc";
+      ctx.fillStyle = boostGlowColor();
       ctx.font = numberFont(12, 900);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -1250,7 +1262,7 @@
       ctx.fillStyle = "rgba(255,255,255,0.12)";
       roundedRect(x + 14, y + 41, width - 28, 6, 3);
       ctx.fill();
-      ctx.fillStyle = "#4ac7a5";
+      ctx.fillStyle = boostColor();
       roundedRect(x + 14, y + 41, (width - 28) * level, 6, 3);
       ctx.fill();
       ctx.restore();

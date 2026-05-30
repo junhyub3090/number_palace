@@ -5,8 +5,8 @@
       excludedDigits: documentRef.getElementById("excludedDigits"),
       historyList: documentRef.getElementById("historyList"),
       messageBox: documentRef.getElementById("messageBox"),
+      remainingTimeValue: documentRef.getElementById("remainingTimeValue"),
       timeValue: documentRef.getElementById("timeValue"),
-      speedValue: documentRef.getElementById("speedValue"),
       boostValue: documentRef.getElementById("boostValue"),
       finalTimeValue: documentRef.getElementById("finalTimeValue"),
     };
@@ -21,8 +21,9 @@
   }
 
   function renderLiveStats(elements, stats) {
+    const remainingMs = Math.max(0, stats.tuning.timeLimitSeconds * 1000 - stats.elapsedMs);
+    elements.remainingTimeValue.textContent = formatTime(remainingMs);
     elements.timeValue.textContent = formatTime(stats.elapsedMs);
-    elements.speedValue.textContent = `x${stats.speedMultiplier().toFixed(2)}`;
     elements.boostValue.textContent = String(stats.speedStack);
     elements.finalTimeValue.textContent =
       stats.finalTimeMs === null ? "-" : formatTime(stats.finalTimeMs);

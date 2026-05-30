@@ -13,6 +13,7 @@
   const elements = hud.getHudElements(document);
   const restartButton = document.getElementById("restartButton");
 
+  let tuning = { ...config.DEFAULT_TUNING };
   let gameState;
   let playerLane;
   let wave;
@@ -31,6 +32,18 @@
   let finalTimeMs;
   let combo;
   let lastGuessPulse;
+  let timedOut;
+
+  window.RunningBaseballDevControls.createDevControls(
+    document,
+    tuning,
+    (nextTuning) => {
+      tuning = nextTuning;
+      if (gameState) {
+        renderHud();
+      }
+    },
+  );
 
   function resetGame() {
     gameState = core.createGameState();
@@ -42,6 +55,7 @@
     startTime = lastFrame;
     elapsedMs = 0;
     finalTimeMs = null;
+    timedOut = false;
     spawnCounter = 0;
     shakeAmount = 0;
     flashAmount = 0;
@@ -56,8 +70,11 @@
   }
 
   function speedMultiplier() {
-    const boost = speedStack * 0.18 + speedStack * speedStack * 0.015;
-    return Math.min(3.45, 1 + boost + Math.min(0.22, gameState.history.length * 0.03));
+    const boost = speedStack * tuning.boostGain;
+    return Math.min(
+      tuning.speedCap,
+      1 + boost + Math.min(0.14, gameState.history.length * 0.018),
+    );
   }
 
   function spawnWave() {
@@ -66,7 +83,7 @@
     wave = {
       id: spawnCounter++,
       y: -86,
-      speed: config.BASE_WAVE_SPEED + Math.min(120, gameState.history.length * 12),
+      speed: tuning.baseWaveSpeed + Math.min(72, gameState.history.length * 8),
       handled: false,
       consumedLane: null,
       crashed: false,
@@ -76,7 +93,7 @@
   }
 
   function moveLane(delta) {
-    if (gameState.solved) return;
+    if (gameState.solved || timedOut) return;
 
     const nextLane = Math.max(0, Math.min(config.LANES - 1, playerLane + delta));
     if (nextLane !== playerLane) {
@@ -93,15 +110,21 @@
   }
 
   function startFlip(now) {
-    if (gameState.solved || now - lastFlipAt < config.FLIP_COOLDOWN) return;
+    if (gameState.solved || timedOut || now - lastFlipAt < config.FLIP_COOLDOWN) return;
 
     audio.ensureAudio();
     flipUntil = now + config.FLIP_DURATION;
     lastFlipAt = now;
-    shakeAmount = Math.max(shakeAmount, 4);
+    shake(4);
     flash("rgba(74,199,165,0.22)", 0.32);
     effects.addFloater(renderer.laneCenter(playerLane), config.PLAYER_Y - 118, "FLIP!", "#4ac7a5", 0.72);
-    effects.burst(renderer.laneCenter(playerLane), config.PLAYER_Y - 44, "#4ac7a5", 16, 260);
+    effects.burst(
+      renderer.laneCenter(playerLane),
+      config.PLAYER_Y - 44,
+      "#4ac7a5",
+      scaledEffectCount(12),
+      220,
+    );
     audio.playEffect("flip");
   }
 
@@ -117,24 +140,38 @@
 
   function flash(color, amount) {
     flashColor = color;
-    flashAmount = Math.max(flashAmount, amount);
+    flashAmount = Math.max(flashAmount, amount * tuning.effectIntensity);
+  }
+
+  function scaledEffectCount(count) {
+    return Math.max(0, Math.round(count * tuning.effectIntensity));
+  }
+
+  function shake(amount) {
+    shakeAmount = Math.max(shakeAmount, amount * tuning.shakeIntensity);
   }
 
   function boostFromEmpty() {
     speedStack = Math.min(config.MAX_SPEED_STACK, speedStack + 1);
     combo += 1;
-    shakeAmount = Math.max(shakeAmount, 7);
+    shake(5);
     effects.flashLane(playerLane, "#4ac7a5", 0.55);
     flash("rgba(74,199,165,0.25)", 0.38);
-    effects.burst(renderer.laneCenter(playerLane), config.CATCH_Y, "#4ac7a5", 26, 330);
+    effects.burst(
+      renderer.laneCenter(playerLane),
+      config.CATCH_Y,
+      "#4ac7a5",
+      scaledEffectCount(16),
+      260,
+    );
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 32,
-      `BOOST x${speedStack}`,
+      "BOOST +1",
       "#4ac7a5",
       1,
     );
-    message = `빈칸 부스트 +1. 속도 x${speedMultiplier().toFixed(2)}`;
+    message = "빈칸 부스트 +1";
     audio.playEffect("boost");
   }
 
@@ -144,10 +181,10 @@
     combo += 1;
     wave.consumedLane = item.lane;
     gameState = core.collectDigit(gameState, item.value);
-    shakeAmount = Math.max(shakeAmount, 10);
+    shake(7);
     effects.flashLane(item.lane, "#f1d35b", 0.62);
     flash("rgba(241,211,91,0.24)", 0.34);
-    effects.burst(x, config.CATCH_Y, "#f1d35b", 34, 390);
+    effects.burst(x, config.CATCH_Y, "#f1d35b", scaledEffectCount(20), 320);
     effects.addFloater(x, config.CATCH_Y - 48, `+${item.value}`, "#f1d35b", 1);
     message = `${item.value} 수집 · ${gameState.currentGuess.length}/3`;
     audio.playEffect("collect");
@@ -168,7 +205,7 @@
       maxLife: 1.25,
     };
     flash("rgba(107,168,255,0.26)", 0.45);
-    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#6ba8ff", 52, 440);
+    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#6ba8ff", scaledEffectCount(30), 360);
     message = `${last.guess.join("")}: ${last.strikes}S`;
     audio.playEffect("guess");
   }
@@ -176,7 +213,7 @@
   function showClearResult() {
     finalTimeMs = elapsedMs;
     flash("rgba(241,211,91,0.38)", 0.7);
-    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", 90, 560);
+    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", scaledEffectCount(48), 460);
     message = `정답 ${gameState.secret.join("")} · ${hud.formatTime(finalTimeMs)}`;
     audio.playEffect("clear");
   }
@@ -187,10 +224,16 @@
     speedStack = Math.max(0, speedStack - 2);
     combo = 0;
     wave.crashed = true;
-    shakeAmount = Math.max(shakeAmount, 24);
+    shake(18);
     effects.flashLane(playerLane, "#ff6f61", 0.75);
     flash("rgba(255,111,97,0.36)", 0.58);
-    effects.burst(renderer.laneCenter(playerLane), config.CATCH_Y, "#ff6f61", 42, 430);
+    effects.burst(
+      renderer.laneCenter(playerLane),
+      config.CATCH_Y,
+      "#ff6f61",
+      scaledEffectCount(24),
+      340,
+    );
     effects.addFloater(
       renderer.laneCenter(playerLane),
       config.CATCH_Y - 46,
@@ -198,18 +241,22 @@
       "#ff6f61",
       1.05,
     );
-    message = `${nextExcluded.join(", ")} 다음 제외 · 속도 ${lost > 0 ? `-${lost}` : "유지"}`;
+    message = `${nextExcluded.join(", ")} 다음 제외 · 부스트 ${lost > 0 ? `-${lost}` : "유지"}`;
     audio.playEffect("crash");
   }
 
   function handleCatch(now) {
-    if (!wave || wave.handled || Math.abs(wave.y - config.CATCH_Y) > 26) return;
+    if (timedOut || !wave || wave.handled || Math.abs(wave.y - config.CATCH_Y) > 26) return;
 
     const item = currentLaneItem();
     wave.handled = true;
 
     if (!item || item.kind === "empty") {
-      boostFromEmpty();
+      if (now < flipUntil) {
+        passEmptyWhileFlipping();
+      } else {
+        boostFromEmpty();
+      }
       renderHud();
       return;
     }
@@ -221,6 +268,18 @@
     }
 
     renderHud();
+  }
+
+  function passEmptyWhileFlipping() {
+    effects.flashLane(playerLane, "#6ba8ff", 0.24);
+    effects.addFloater(
+      renderer.laneCenter(playerLane),
+      config.CATCH_Y - 34,
+      "PASS",
+      "#9fc5ff",
+      0.72,
+    );
+    message = "공중제비 중 빈칸 통과 · 부스트 없음";
   }
 
   function updateLastGuessPulse(dt) {
@@ -236,15 +295,17 @@
     const dt = Math.min(0.033, (timestamp - lastFrame) / 1000);
     lastFrame = timestamp;
 
-    if (!gameState.solved) {
+    if (!gameState.solved && !timedOut) {
       elapsedMs = timestamp - startTime;
+      if (elapsedMs >= tuning.timeLimitSeconds * 1000) {
+        handleTimeout();
+      }
     }
 
     const speed = speedMultiplier();
     effects.updateStars(dt, speed, speedStack);
-    renderer.updateTrackOffset(dt, speed, speedStack);
 
-    if (!gameState.solved) {
+    if (!gameState.solved && !timedOut) {
       wave.y += wave.speed * speed * dt;
       handleCatch(timestamp);
 
@@ -262,6 +323,17 @@
     requestAnimationFrame(update);
   }
 
+  function handleTimeout() {
+    timedOut = true;
+    elapsedMs = tuning.timeLimitSeconds * 1000;
+    finalTimeMs = elapsedMs;
+    message = "시간 종료. 새 게임으로 다시 도전!";
+    flash("rgba(255,111,97,0.28)", 0.55);
+    effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#ff6f61", scaledEffectCount(32), 360);
+    audio.playEffect("crash");
+    renderHud();
+  }
+
   function createViewState() {
     return {
       elapsedMs,
@@ -271,6 +343,8 @@
       nextExcluded,
       speedMultiplier,
       speedStack,
+      timedOut,
+      tuning,
     };
   }
 

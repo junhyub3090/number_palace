@@ -29,21 +29,11 @@
       </div>
     </section>
 
-    <aside class="side-panel">
-      <div class="panel-top">
-        <div>
-          <p class="kicker">Running Baseball</p>
-          <h1>러닝 숫자야구</h1>
-        </div>
-        <div class="panel-actions">
-          <button id="lobbyButton" type="button">로비</button>
-          <button id="pauseButton" type="button">정지</button>
-          <button id="deathButton" type="button">죽음</button>
-          <button id="restartButton" type="button">새 게임</button>
-        </div>
-      </div>
+    <aside class="side-panel" aria-label="게임 정보">
+      <button id="devToggleButton" class="dev-toggle" type="button" aria-controls="devDrawer" aria-expanded="false"
+        aria-label="개발 메뉴">⚙</button>
 
-      <section class="status-block">
+      <section class="status-block live-overlay play-stats">
         <h2>플레이 상태</h2>
         <div class="stat-grid compact">
           <div class="stat-card">
@@ -69,86 +59,101 @@
         </div>
       </section>
 
-      <section class="status-block">
-        <h2>현재 추측</h2>
-        <div id="guessSlots" class="guess-slots" aria-live="polite"></div>
-      </section>
-
-      <section class="status-block">
+      <section class="status-block live-overlay history-overlay">
         <h2>결과 (S 순)</h2>
         <ol id="historyList" class="history-list" aria-live="polite"></ol>
       </section>
 
-      <details class="qa-panel" open>
-        <summary>QA 조절</summary>
-        <div class="dev-secret">
-          <span>정답</span>
-          <strong id="devSecretValue">...</strong>
+      <div id="devDrawer" class="dev-drawer" hidden>
+        <div class="panel-top">
+          <div>
+            <p class="kicker">Running Baseball</p>
+            <h1>러닝 숫자야구</h1>
+          </div>
+          <div class="panel-actions">
+            <button id="lobbyButton" type="button">로비</button>
+            <button id="pauseButton" type="button">정지</button>
+            <button id="deathButton" type="button">죽음</button>
+            <button id="restartButton" type="button">새 게임</button>
+          </div>
         </div>
-        <div class="qa-grid">
-          <label>
-            <span>난이도</span>
-            <select id="qaDifficulty">
-              <option value="5">Easy 1-5</option>
-              <option value="7" selected>Normal 1-7</option>
-              <option value="9">Hard 1-9</option>
-            </select>
-            <strong id="qaDifficultyValue">1-7</strong>
-          </label>
-          <label>
-            <span>중복</span>
-            <input id="qaAllowDuplicates" type="checkbox" />
-            <strong id="qaAllowDuplicatesValue">OFF</strong>
-          </label>
-          <label>
-            <span>제한시간</span>
-            <input id="qaTimeLimit" type="range" min="60" max="600" step="30" value="300" />
-            <strong id="qaTimeLimitValue">5:00</strong>
-          </label>
-          <label>
-            <span>낙하속도</span>
-            <input id="qaBaseSpeed" type="range" min="140" max="460" value="255" />
-            <strong id="qaBaseSpeedValue">255</strong>
-          </label>
-          <label>
-            <span>빈칸 가속</span>
-            <input id="qaBoostGain" type="range" min="0" max="80" value="55" />
-            <strong id="qaBoostGainValue">0.55</strong>
-          </label>
-          <label>
-            <span>최대속도</span>
-            <input id="qaSpeedCap" type="range" min="180" max="350" value="265" />
-            <strong id="qaSpeedCapValue">2.65</strong>
-          </label>
-          <label>
-            <span>숫자 크기</span>
-            <input id="qaItemSize" type="range" min="46" max="76" value="60" />
-            <strong id="qaItemSizeValue">60</strong>
-          </label>
-          <label>
-            <span>캐릭터</span>
-            <input id="qaPlayerScale" type="range" min="75" max="110" value="90" />
-            <strong id="qaPlayerScaleValue">0.90</strong>
-          </label>
-          <label>
-            <span>연출 강도</span>
-            <input id="qaEffectIntensity" type="range" min="0" max="100" value="55" />
-            <strong id="qaEffectIntensityValue">0.55</strong>
-          </label>
-          <label>
-            <span>흔들림</span>
-            <input id="qaShakeIntensity" type="range" min="0" max="100" value="45" />
-            <strong id="qaShakeIntensityValue">0.45</strong>
-          </label>
-          <label>
-            <span>속도감</span>
-            <input id="qaBoostMotion" type="range" min="0" max="100" value="50" />
-            <strong id="qaBoostMotionValue">0.50</strong>
-          </label>
-        </div>
-      </details>
 
-      <div id="messageBox" class="message-box" aria-live="polite"></div>
+        <section class="status-block">
+          <h2>현재 추측</h2>
+          <div id="guessSlots" class="guess-slots" aria-live="polite"></div>
+        </section>
+
+        <details class="qa-panel" open>
+          <summary>QA 조절</summary>
+          <div class="dev-secret">
+            <span>정답</span>
+            <strong id="devSecretValue">...</strong>
+          </div>
+          <div class="qa-grid">
+            <label>
+              <span>난이도</span>
+              <select id="qaDifficulty">
+                <option value="5">Easy 1-5</option>
+                <option value="7" selected>Normal 1-7</option>
+                <option value="9">Hard 1-9</option>
+              </select>
+              <strong id="qaDifficultyValue">1-7</strong>
+            </label>
+            <label>
+              <span>중복</span>
+              <input id="qaAllowDuplicates" type="checkbox" />
+              <strong id="qaAllowDuplicatesValue">OFF</strong>
+            </label>
+            <label>
+              <span>제한시간</span>
+              <input id="qaTimeLimit" type="range" min="60" max="600" step="30" value="300" />
+              <strong id="qaTimeLimitValue">5:00</strong>
+            </label>
+            <label>
+              <span>낙하속도</span>
+              <input id="qaBaseSpeed" type="range" min="140" max="460" value="255" />
+              <strong id="qaBaseSpeedValue">255</strong>
+            </label>
+            <label>
+              <span>빈칸 가속</span>
+              <input id="qaBoostGain" type="range" min="0" max="80" value="48" />
+              <strong id="qaBoostGainValue">0.48</strong>
+            </label>
+            <label>
+              <span>최대속도</span>
+              <input id="qaSpeedCap" type="range" min="180" max="350" value="265" />
+              <strong id="qaSpeedCapValue">2.65</strong>
+            </label>
+            <label>
+              <span>숫자 크기</span>
+              <input id="qaItemSize" type="range" min="46" max="76" value="60" />
+              <strong id="qaItemSizeValue">60</strong>
+            </label>
+            <label>
+              <span>캐릭터</span>
+              <input id="qaPlayerScale" type="range" min="75" max="110" value="90" />
+              <strong id="qaPlayerScaleValue">0.90</strong>
+            </label>
+            <label>
+              <span>연출 강도</span>
+              <input id="qaEffectIntensity" type="range" min="0" max="100" value="55" />
+              <strong id="qaEffectIntensityValue">0.55</strong>
+            </label>
+            <label>
+              <span>흔들림</span>
+              <input id="qaShakeIntensity" type="range" min="0" max="100" value="45" />
+              <strong id="qaShakeIntensityValue">0.45</strong>
+            </label>
+            <label>
+              <span>속도감</span>
+              <input id="qaBoostMotion" type="range" min="0" max="100" value="50" />
+              <strong id="qaBoostMotionValue">0.50</strong>
+            </label>
+          </div>
+        </details>
+      </div>
+
+      <div id="messageBox" class="message-box live-overlay" aria-live="polite"></div>
     </aside>
   </main>
 
@@ -192,6 +197,25 @@
     if (lobbyBtn) {
       lobbyBtn.addEventListener('click', () => {
         window.location.href = 'lobby.html';
+      });
+    }
+
+    const devToggleButton = document.getElementById('devToggleButton');
+    const devDrawer = document.getElementById('devDrawer');
+    if (devToggleButton && devDrawer) {
+      function setDevDrawerOpen(open) {
+        devDrawer.hidden = !open;
+        devToggleButton.setAttribute('aria-expanded', String(open));
+      }
+
+      devToggleButton.addEventListener('click', () => {
+        setDevDrawerOpen(devDrawer.hidden);
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          setDevDrawerOpen(false);
+        }
       });
     }
   </script>

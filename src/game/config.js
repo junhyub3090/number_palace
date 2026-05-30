@@ -19,7 +19,7 @@
     BASE_WAVE_SPEED: 255,
     DEFAULT_TUNING: {
       baseWaveSpeed: 255,
-      boostGain: 0.55,
+      boostGain: 0.48,
       boostMotion: 0.5,
       digitMax: 7,
       effectIntensity: 0.55,

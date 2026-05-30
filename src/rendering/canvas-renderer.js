@@ -1,6 +1,24 @@
 (function attachCanvasRenderer(global) {
   function createCanvasRenderer(canvas, config, formatTime) {
     const ctx = canvas.getContext("2d");
+    let viewportWidth = config.WIDTH;
+    let viewportHeight = config.HEIGHT;
+    let stageX = 0;
+    let stageY = 0;
+    let stageScale = 1;
+
+    function resize(width, height) {
+      viewportWidth = Math.max(1, Math.floor(width || config.WIDTH));
+      viewportHeight = Math.max(1, Math.floor(height || config.HEIGHT));
+      stageScale = Math.min(
+        1,
+        viewportWidth / config.WIDTH,
+        viewportHeight / config.HEIGHT,
+      );
+      stageX = (viewportWidth - config.WIDTH * stageScale) / 2;
+      stageY = (viewportHeight - config.HEIGHT * stageScale) / 2;
+    }
+
     function laneCenter(lane) {
       return lane * config.LANE_WIDTH + config.LANE_WIDTH / 2;
     }
@@ -24,8 +42,12 @@
       const shakeX = (Math.random() - 0.5) * snapshot.shakeAmount;
       const shakeY = (Math.random() - 0.5) * snapshot.shakeAmount;
 
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      drawViewportBackdrop(snapshot);
+
       ctx.save();
-      ctx.translate(shakeX, shakeY);
+      ctx.translate(stageX + shakeX, stageY + shakeY);
+      ctx.scale(stageScale, stageScale);
       drawTrack(snapshot);
       drawWave(snapshot);
       drawPlayer(snapshot);
@@ -36,11 +58,43 @@
 
       if (snapshot.flashAmount > 0.02) {
         ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = Math.min(0.45, snapshot.flashAmount);
         ctx.fillStyle = snapshot.flashColor;
-        ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
+        ctx.fillRect(0, 0, viewportWidth, viewportHeight);
         ctx.restore();
       }
+    }
+
+    function drawViewportBackdrop(snapshot) {
+      const intensity = boostMotionLevel(snapshot);
+      const grd = ctx.createLinearGradient(0, 0, 0, viewportHeight);
+      grd.addColorStop(0, "#10171a");
+      grd.addColorStop(0.45, "#15181d");
+      grd.addColorStop(1, "#0f1012");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, viewportWidth, viewportHeight);
+
+      if (intensity <= 0.01) return;
+
+      ctx.save();
+      ctx.globalAlpha = 0.08 + intensity * 0.12;
+      ctx.strokeStyle = "#4ac7a5";
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([18, 28]);
+      const center = viewportWidth / 2;
+      const lanePad = config.WIDTH * stageScale * 0.5 + 32;
+      const offset = (snapshot.timestamp * (0.08 + intensity * 0.16)) % 46;
+
+      for (let x = center - lanePad - 180; x <= center + lanePad + 180; x += 72) {
+        ctx.beginPath();
+        ctx.moveTo(x, -offset);
+        ctx.lineTo(x, viewportHeight + 46);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([]);
+      ctx.restore();
     }
 
     function drawTrack(snapshot) {
@@ -420,23 +474,7 @@
     }
 
     function drawOverlay(snapshot) {
-      ctx.fillStyle = "rgba(0,0,0,0.36)";
-      roundedRect(18, 18, 300, 70, 8);
-      ctx.fill();
-      ctx.fillStyle = "#f2f2ea";
-      ctx.font = "900 18px Inter, system-ui, sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`Set ${snapshot.score + 1} · Guess ${snapshot.gameState.history.length + 1}`, 34, 40);
-      ctx.fillStyle = "#4ac7a5";
-      ctx.font = "800 15px Inter, system-ui, sans-serif";
-      ctx.fillText(
-        `${formatTime(snapshot.remainingMs)}  ·  Speed x${snapshot.speedMultiplierValue.toFixed(2)}  ·  Boost ${snapshot.speedStack}`,
-        34,
-        65,
-      );
       drawPickTray(snapshot);
-      drawBoostBadge(snapshot);
 
       if (snapshot.lastGuessPulse) {
         const progress = 1 - snapshot.lastGuessPulse.life / snapshot.lastGuessPulse.maxLife;
@@ -598,6 +636,7 @@
     return {
       draw,
       laneCenter,
+      resize,
       updateTrackOffset,
     };
   }

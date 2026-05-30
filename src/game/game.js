@@ -60,6 +60,14 @@
     },
   );
 
+  function resizeCanvas() {
+    const width = Math.max(1, Math.floor(window.innerWidth || config.WIDTH));
+    const height = Math.max(1, Math.floor(window.innerHeight || config.HEIGHT));
+    canvas.width = width;
+    canvas.height = height;
+    renderer.resize(width, height);
+  }
+
   function resetGame() {
     gameState = core.createGameState(generationOptions());
     playerLane = 1;
@@ -552,7 +560,9 @@
     endGame("death");
   });
   restartButton.addEventListener("click", resetGame);
+  window.addEventListener("resize", resizeCanvas);
 
+  resizeCanvas();
   resetGame();
   requestAnimationFrame(update);
 })();

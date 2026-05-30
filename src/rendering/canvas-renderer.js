@@ -1,8 +1,6 @@
 (function attachCanvasRenderer(global) {
   function createCanvasRenderer(canvas, config, formatTime) {
     const ctx = canvas.getContext("2d");
-    let trackOffset = 0;
-
     function laneCenter(lane) {
       return lane * config.LANE_WIDTH + config.LANE_WIDTH / 2;
     }
@@ -18,8 +16,8 @@
       ctx.closePath();
     }
 
-    function updateTrackOffset(dt, speed, speedStack) {
-      trackOffset = (trackOffset + (260 + speedStack * 95) * speed * dt) % 86;
+    function updateTrackOffset() {
+      return;
     }
 
     function draw(snapshot) {
@@ -29,8 +27,7 @@
       ctx.save();
       ctx.translate(shakeX, shakeY);
       drawTrack(snapshot);
-      drawSpeedLines(snapshot.speedStack);
-      drawWave(snapshot.wave, snapshot.playerLane, snapshot.speedStack);
+      drawWave(snapshot.wave, snapshot.playerLane, snapshot.tuning.itemSize);
       drawPlayer(snapshot);
       drawParticles(snapshot.effects.particles);
       drawFloaters(snapshot.effects.floaters);
@@ -61,22 +58,10 @@
           star.x,
           star.y,
           star.size,
-          star.size * (3.2 + snapshot.speedStack * 0.35),
+          star.size * 3.2,
         );
       });
       ctx.globalAlpha = 1;
-
-      ctx.save();
-      ctx.globalAlpha = Math.min(0.28, 0.08 + snapshot.speedStack * 0.025);
-      ctx.strokeStyle = "#4ac7a5";
-      ctx.lineWidth = 3;
-      for (let y = -86 + trackOffset; y < config.HEIGHT + 86; y += 86) {
-        ctx.beginPath();
-        ctx.moveTo(24, y);
-        ctx.lineTo(config.WIDTH - 24, y + 20 + snapshot.speedStack * 4);
-        ctx.stroke();
-      }
-      ctx.restore();
 
       for (let lane = 0; lane < config.LANES; lane += 1) {
         const x = lane * config.LANE_WIDTH;
@@ -117,31 +102,12 @@
       ctx.setLineDash([]);
     }
 
-    function drawSpeedLines(speedStack) {
-      if (speedStack <= 0) return;
-
-      ctx.save();
-      ctx.globalAlpha = Math.min(0.78, 0.2 + speedStack * 0.07);
-      ctx.strokeStyle = "#4ac7a5";
-      ctx.lineWidth = 2 + speedStack * 0.2;
-      for (let i = 0; i < speedStack * 9; i += 1) {
-        const x = Math.random() * config.WIDTH;
-        const y = Math.random() * config.HEIGHT;
-        const length = 60 + speedStack * 18 + Math.random() * 70;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x, y + length);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    function drawWave(wave, playerLane, speedStack) {
+    function drawWave(wave, playerLane, itemSize) {
       if (!wave) return;
 
       wave.items.forEach((item) => {
         if (item.kind === "empty") {
-          drawEmptyGate(item.lane, wave.y);
+          drawEmptyGate(item.lane, wave.y, itemSize);
           return;
         }
 
@@ -152,30 +118,15 @@
         const danger = wave.crashed && item.lane === playerLane;
 
         ctx.save();
-        if (speedStack > 0 && !handled) {
-          ctx.globalAlpha = Math.min(0.35, 0.08 + speedStack * 0.035);
-          ctx.fillStyle = danger ? "#ff6f61" : "#f2d55b";
-          for (let i = 1; i <= 3; i += 1) {
-            roundedRect(
-              x - config.ITEM_SIZE / 2 + i * 5,
-              y - config.ITEM_SIZE / 2 - i * (14 + speedStack * 3),
-              config.ITEM_SIZE - i * 10,
-              config.ITEM_SIZE * 0.72,
-              8,
-            );
-            ctx.fill();
-          }
-        }
-
         ctx.globalAlpha = pulse;
         ctx.shadowColor = danger ? "rgba(255,111,97,0.65)" : "rgba(0,0,0,0.38)";
         ctx.shadowBlur = danger ? 26 : 16;
         ctx.shadowOffsetY = 10;
         roundedRect(
-          x - config.ITEM_SIZE / 2,
-          y - config.ITEM_SIZE / 2,
-          config.ITEM_SIZE,
-          config.ITEM_SIZE,
+          x - itemSize / 2,
+          y - itemSize / 2,
+          itemSize,
+          itemSize,
           8,
         );
         ctx.fillStyle = danger ? "#ff6f61" : "#f2d55b";
@@ -186,7 +137,7 @@
         ctx.stroke();
 
         ctx.fillStyle = danger ? "#2a0907" : "#17140a";
-        ctx.font = "900 42px Inter, system-ui, sans-serif";
+        ctx.font = `900 ${Math.round(itemSize * 0.52)}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(String(item.value), x, y + 2);
@@ -194,20 +145,20 @@
       });
     }
 
-    function drawEmptyGate(lane, y) {
+    function drawEmptyGate(lane, y, itemSize) {
       const x = laneCenter(lane);
       ctx.save();
       ctx.globalAlpha = 0.44;
       ctx.strokeStyle = "#4ac7a5";
       ctx.lineWidth = 4;
       ctx.setLineDash([10, 10]);
-      roundedRect(x - config.ITEM_SIZE / 2, y - config.ITEM_SIZE / 2, config.ITEM_SIZE, config.ITEM_SIZE, 8);
+      roundedRect(x - itemSize / 2, y - itemSize / 2, itemSize, itemSize, 8);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = "rgba(74,199,165,0.08)";
       ctx.fill();
       ctx.fillStyle = "#4ac7a5";
-      ctx.font = "900 16px Inter, system-ui, sans-serif";
+      ctx.font = `900 ${Math.max(12, Math.round(itemSize * 0.21))}px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("BOOST", x, y);
@@ -226,6 +177,7 @@
       const stride = Math.sin(run) * (flipping ? 0.25 : 1);
       const armStride = Math.sin(run + Math.PI) * (flipping ? 0.2 : 1);
       const y = config.PLAYER_Y - lift;
+      const playerScale = snapshot.tuning.playerScale;
 
       if (flipping) {
         ctx.save();
@@ -240,19 +192,9 @@
         ctx.restore();
       }
 
-      if (snapshot.speedStack > 0 && !flipping) {
-        ctx.save();
-        ctx.globalAlpha = Math.min(0.48, 0.12 + snapshot.speedStack * 0.045);
-        ctx.fillStyle = "#4ac7a5";
-        for (let i = 0; i < 3; i += 1) {
-          roundedRect(x - 44 - i * 16, y + 2 + i * 13, 32 + snapshot.speedStack * 6, 7, 4);
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-
       ctx.save();
       ctx.translate(x, y);
+      ctx.scale(playerScale, playerScale);
       ctx.rotate(spin);
 
       ctx.fillStyle = "rgba(0,0,0,0.3)";
@@ -265,7 +207,7 @@
       ctx.fillStyle = "#4ac7a5";
       ctx.beginPath();
       ctx.moveTo(-18, -4);
-      ctx.lineTo(-58 - snapshot.speedStack * 4, -24);
+      ctx.lineTo(-48, -22);
       ctx.lineTo(-26, 12);
       ctx.closePath();
       ctx.fill();
@@ -379,7 +321,7 @@
       ctx.fillText(`Guess ${snapshot.gameState.history.length + 1}`, 34, 40);
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "800 15px Inter, system-ui, sans-serif";
-      ctx.fillText(`${formatTime(snapshot.elapsedMs)}  ·  x${snapshot.speedMultiplier().toFixed(2)}`, 34, 65);
+      ctx.fillText(`${formatTime(snapshot.elapsedMs)}  ·  Boost ${snapshot.speedStack}`, 34, 65);
 
       if (snapshot.lastGuessPulse) {
         const progress = 1 - snapshot.lastGuessPulse.life / snapshot.lastGuessPulse.maxLife;
@@ -398,21 +340,35 @@
         ctx.restore();
       }
 
+      if (snapshot.paused && !snapshot.gameState.solved && !snapshot.timedOut) {
+        drawEndOverlay("일시정지", "P 또는 버튼으로 재개", "#6ba8ff");
+        return;
+      }
+
+      if (snapshot.timedOut && !snapshot.gameState.solved) {
+        drawEndOverlay("시간 종료", "새 게임으로 다시 도전", "#ff6f61");
+        return;
+      }
+
       if (!snapshot.gameState.solved) return;
 
-      ctx.fillStyle = "rgba(16,17,20,0.78)";
-      ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
-      ctx.fillStyle = "#f1d35b";
-      ctx.font = "950 58px Inter, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("정답!", config.WIDTH / 2, config.HEIGHT / 2 - 56);
-      ctx.fillStyle = "#f2f2ea";
-      ctx.font = "900 34px Inter, system-ui, sans-serif";
-      ctx.fillText(snapshot.gameState.secret.join(""), config.WIDTH / 2, config.HEIGHT / 2 + 6);
+      drawEndOverlay("정답!", snapshot.gameState.secret.join(""), "#f1d35b");
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "850 26px Inter, system-ui, sans-serif";
       ctx.fillText(`걸린 시간 ${formatTime(snapshot.finalTimeMs)}`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
+    }
+
+    function drawEndOverlay(title, subtitle, color) {
+      ctx.fillStyle = "rgba(16,17,20,0.78)";
+      ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
+      ctx.fillStyle = color;
+      ctx.font = "950 58px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(title, config.WIDTH / 2, config.HEIGHT / 2 - 56);
+      ctx.fillStyle = "#f2f2ea";
+      ctx.font = "900 34px Inter, system-ui, sans-serif";
+      ctx.fillText(subtitle, config.WIDTH / 2, config.HEIGHT / 2 + 6);
     }
 
     return {

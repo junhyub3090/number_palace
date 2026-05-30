@@ -118,7 +118,6 @@
         !snapshot.wave.handled &&
         waveY > top - 110 &&
         waveY < top + height + 18;
-      const flipping = snapshot.timestamp < snapshot.flipUntil;
 
       ctx.save();
       for (let lane = 0; lane < config.LANES; lane += 1) {
@@ -145,22 +144,6 @@
         8,
       );
       ctx.stroke();
-
-      if (flipping) {
-        const progress = 1 - (snapshot.flipUntil - snapshot.timestamp) / config.FLIP_DURATION;
-        const pulse = Math.sin(progress * Math.PI);
-        ctx.globalAlpha = 0.3 + pulse * 0.38;
-        ctx.strokeStyle = "#4ac7a5";
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.arc(activeX, config.CATCH_Y, config.CATCH_WINDOW + 8 + pulse * 12, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.globalAlpha = 0.26 + pulse * 0.28;
-        ctx.beginPath();
-        ctx.arc(activeX, config.CATCH_Y, config.CATCH_WINDOW * 0.52 + pulse * 8, 0, Math.PI * 2);
-        ctx.stroke();
-      }
 
       ctx.restore();
     }
@@ -317,23 +300,6 @@
       const scarfFlutter = Math.sin(snapshot.timestamp / 80) * (2 + boostWind * 5);
       const scarfTail = 48 + boostWind * 22;
 
-      if (flipping) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(spin);
-        ctx.globalAlpha = 0.35;
-        ctx.strokeStyle = "#4ac7a5";
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.arc(0, 4, 48, -Math.PI * 0.25, Math.PI * 1.15);
-        ctx.stroke();
-        ctx.globalAlpha = 0.2;
-        ctx.beginPath();
-        ctx.arc(0, 4, 64, Math.PI * 0.15, Math.PI * 1.35);
-        ctx.stroke();
-        ctx.restore();
-      }
-
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(playerScale, playerScale);
@@ -468,6 +434,7 @@
         34,
         65,
       );
+      drawPickTray(snapshot);
       drawBoostBadge(snapshot);
 
       if (snapshot.lastGuessPulse) {
@@ -498,6 +465,72 @@
       ctx.fillStyle = "#4ac7a5";
       ctx.font = "850 26px Inter, system-ui, sans-serif";
       ctx.fillText(`걸린 시간 ${formatTime(snapshot.finalTimeMs)}`, config.WIDTH / 2, config.HEIGHT / 2 + 56);
+    }
+
+    function drawPickTray(snapshot) {
+      const currentGuess = snapshot.gameState.currentGuess;
+      const lastGuess = snapshot.gameState.history[0];
+      const showingCurrent = currentGuess.length > 0;
+      const values = showingCurrent
+        ? currentGuess
+        : lastGuess
+          ? revealMatchedDigits(lastGuess.guess, snapshot.gameState.secret)
+          : [];
+      const label = showingCurrent || !lastGuess ? "PICK" : "HIT";
+      const color = showingCurrent || !lastGuess ? "#f1d35b" : "#4ac7a5";
+      const x = 332;
+      const y = 18;
+      const width = 140;
+      const height = 70;
+      const slotSize = 30;
+      const gap = 8;
+      const slotY = y + 33;
+      const firstSlotX = x + 17;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(16,17,20,0.54)";
+      roundedRect(x, y, width, height, 8);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(242,242,234,${showingCurrent ? 0.24 : 0.16})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = color;
+      ctx.font = "900 12px Inter, system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, x + 14, y + 17);
+
+      for (let index = 0; index < 3; index += 1) {
+        const value = values[index];
+        const slotX = firstSlotX + index * (slotSize + gap);
+        ctx.fillStyle = value ? "rgba(242,242,234,0.12)" : "rgba(255,255,255,0.045)";
+        roundedRect(slotX, slotY, slotSize, slotSize, 7);
+        ctx.fill();
+        ctx.strokeStyle = value ? color : "rgba(255,255,255,0.1)";
+        ctx.lineWidth = value ? 2 : 1;
+        ctx.stroke();
+
+        ctx.fillStyle = value ? color : "rgba(242,242,234,0.28)";
+        ctx.font = "950 18px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(value ? String(value) : ".", slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+      }
+
+      ctx.restore();
+    }
+
+    function revealMatchedDigits(guess, secret) {
+      const used = new Set();
+      return guess.map((digit) => {
+        if (!secret.includes(digit) || used.has(digit)) {
+          return null;
+        }
+
+        used.add(digit);
+        return digit;
+      });
     }
 
     function drawBoostBadge(snapshot) {

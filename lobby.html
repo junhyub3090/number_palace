@@ -93,6 +93,10 @@
       
       <div class="user-info" id="userInfo">접속 정보를 불러오는 중...</div>
       
+      <div class="best-time-info" id="bestTimeInfo" style="display: none; background: rgba(107, 168, 255, 0.1); border: 1px solid rgba(107, 168, 255, 0.2); border-radius: 8px; padding: 12px; color: var(--accent); font-weight: 800; font-size: 15px;">
+        최단 클리어 시간: <span id="bestTimeValue">00:00.0</span>
+      </div>
+      
       <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
         <button id="newGameBtn" class="btn btn-primary" type="button">새 게임 시작</button>
         <button id="logoutBtn" class="btn btn-secondary" type="button">로그아웃</button>
@@ -120,6 +124,21 @@
           userInfoEl.style.border = '1px solid rgba(255, 111, 97, 0.2)';
         }
       } else {
+        try {
+          const userData = await FirebaseApi.getUserData();
+          if (userData && userData.bestClearTime) {
+            const ms = userData.bestClearTime;
+            const mins = Math.floor(ms / 60000).toString().padStart(2, '0');
+            const secs = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+            const tenths = Math.floor((ms % 1000) / 100);
+            
+            document.getElementById('bestTimeValue').textContent = `${mins}:${secs}.${tenths}`;
+            document.getElementById('bestTimeInfo').style.display = 'block';
+          }
+        } catch (error) {
+          console.error("데이터 로드 실패:", error);
+        }
+
         if (user.isAnonymous) {
           userInfoEl.textContent = '게스트 모드로 접속 중입니다.';
           logoutBtn.textContent = '구글 로그인 연동 (기록 저장)';

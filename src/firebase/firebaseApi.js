@@ -165,6 +165,22 @@ const FirebaseApi = {
   // 7. 로그인 상태 변경 감지
   onAuthStateChanged: (callback) => {
     return onAuthStateChanged(auth, callback);
+  },
+
+  // 8. 최단 클리어 시간 업데이트
+  updateBestClearTime: async (timeMs) => {
+    try {
+      const currentData = await FirebaseApi.getUserData();
+      const currentBest = currentData?.bestClearTime;
+      if (!currentBest || timeMs < currentBest) {
+        await FirebaseApi.saveUserData('bestClearTime', timeMs);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('[Firebase Firestore] 최단 클리어 시간 저장 실패:', error);
+      return false;
+    }
   }
 };
 

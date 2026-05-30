@@ -218,6 +218,12 @@
     effects.burst(config.WIDTH / 2, config.HEIGHT / 2, "#f1d35b", scaledEffectCount(48), 460);
     message = `정답 ${gameState.secret.join("")} · ${hud.formatTime(finalTimeMs)}`;
     audio.playEffect("clear");
+
+    if (window.FirebaseApi) {
+      window.FirebaseApi.updateBestClearTime(finalTimeMs).catch(err => {
+        console.error("최단 클리어 시간 업데이트 실패:", err);
+      });
+    }
   }
 
   function crashIntoNumber() {

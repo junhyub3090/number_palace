@@ -513,6 +513,7 @@
 
     function drawOverlay(snapshot) {
       drawPickTray(snapshot);
+      drawNextPreview(snapshot);
 
       if (snapshot.lastGuessPulse) {
         const progress = 1 - snapshot.lastGuessPulse.life / snapshot.lastGuessPulse.maxLife;
@@ -598,6 +599,53 @@
 
         ctx.fillStyle = value ? color : "rgba(242,242,234,0.28)";
         ctx.font = "950 18px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(value ? String(value) : ".", slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+      }
+
+      ctx.restore();
+    }
+
+    function drawNextPreview(snapshot) {
+      const values = Array.isArray(snapshot.nextWaveDigits)
+        ? snapshot.nextWaveDigits
+        : [];
+      const width = 140;
+      const height = 62;
+      const x = config.WIDTH / 2 - width / 2;
+      const y = 96;
+      const slotSize = 28;
+      const gap = 8;
+      const slotY = y + 27;
+      const firstSlotX = x + 18;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(16,17,20,0.48)";
+      roundedRect(x, y, width, height, 8);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(107,168,255,0.34)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = "#9fc5ff";
+      ctx.font = "900 11px Inter, system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("NEXT", x + 14, y + 15);
+
+      for (let index = 0; index < 3; index += 1) {
+        const value = values[index];
+        const slotX = firstSlotX + index * (slotSize + gap);
+        ctx.fillStyle = value ? "rgba(107,168,255,0.14)" : "rgba(255,255,255,0.04)";
+        roundedRect(slotX, slotY, slotSize, slotSize, 7);
+        ctx.fill();
+        ctx.strokeStyle = value ? "rgba(107,168,255,0.62)" : "rgba(255,255,255,0.1)";
+        ctx.lineWidth = value ? 2 : 1;
+        ctx.stroke();
+
+        ctx.fillStyle = value ? "#f2f2ea" : "rgba(242,242,234,0.28)";
+        ctx.font = "950 17px Inter, system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(value ? String(value) : ".", slotX + slotSize / 2, slotY + slotSize / 2 + 1);

@@ -6,6 +6,7 @@
     let stageX = 0;
     let stageY = 0;
     let stageScale = 1;
+    const digitPalette = ["#ffd85c", "#7bdcff", "#ff9dbc", "#a9e875", "#b9a4ff"];
 
     function resize(width, height) {
       viewportWidth = Math.max(1, Math.floor(width || config.WIDTH));
@@ -120,17 +121,46 @@
     function drawViewportBackdrop(snapshot) {
       const intensity = boostMotionLevel(snapshot);
       const grd = ctx.createLinearGradient(0, 0, 0, viewportHeight);
-      grd.addColorStop(0, "#10171a");
-      grd.addColorStop(0.45, "#15181d");
-      grd.addColorStop(1, "#0f1012");
+      grd.addColorStop(0, "#0e1b28");
+      grd.addColorStop(0.45, "#141727");
+      grd.addColorStop(1, "#0d1018");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, viewportWidth, viewportHeight);
+
+      ctx.save();
+      ctx.globalAlpha = 0.32;
+      const glowA = ctx.createRadialGradient(
+        viewportWidth * 0.18,
+        viewportHeight * 0.16,
+        0,
+        viewportWidth * 0.18,
+        viewportHeight * 0.16,
+        viewportWidth * 0.42,
+      );
+      glowA.addColorStop(0, "rgba(123,220,255,0.32)");
+      glowA.addColorStop(1, "rgba(123,220,255,0)");
+      ctx.fillStyle = glowA;
+      ctx.fillRect(0, 0, viewportWidth, viewportHeight);
+
+      const glowB = ctx.createRadialGradient(
+        viewportWidth * 0.82,
+        viewportHeight * 0.12,
+        0,
+        viewportWidth * 0.82,
+        viewportHeight * 0.12,
+        viewportWidth * 0.36,
+      );
+      glowB.addColorStop(0, "rgba(255,216,92,0.22)");
+      glowB.addColorStop(1, "rgba(255,216,92,0)");
+      ctx.fillStyle = glowB;
+      ctx.fillRect(0, 0, viewportWidth, viewportHeight);
+      ctx.restore();
 
       if (intensity <= 0.01) return;
 
       ctx.save();
       ctx.globalAlpha = 0.06 + intensity * 0.11;
-      ctx.strokeStyle = "#4ac7a5";
+      ctx.strokeStyle = "#7bdcff";
       ctx.lineWidth = 1.2;
       ctx.setLineDash([18, 28]);
       const center = viewportWidth / 2;
@@ -154,15 +184,25 @@
 
     function drawTrack(snapshot) {
       const grd = ctx.createLinearGradient(0, 0, 0, config.HEIGHT);
-      grd.addColorStop(0, "#15282d");
-      grd.addColorStop(0.45, "#20262e");
-      grd.addColorStop(1, "#111214");
+      grd.addColorStop(0, "#17263a");
+      grd.addColorStop(0.48, "#1b2033");
+      grd.addColorStop(1, "#111521");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
 
+      ctx.save();
+      const sideGlow = ctx.createLinearGradient(0, 0, config.WIDTH, 0);
+      sideGlow.addColorStop(0, "rgba(123,220,255,0.18)");
+      sideGlow.addColorStop(0.24, "rgba(123,220,255,0)");
+      sideGlow.addColorStop(0.76, "rgba(255,216,92,0)");
+      sideGlow.addColorStop(1, "rgba(255,216,92,0.15)");
+      ctx.fillStyle = sideGlow;
+      ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
+      ctx.restore();
+
       ctx.fillStyle = "rgba(255,255,255,0.78)";
       snapshot.effects.stars.forEach((star) => {
-        ctx.globalAlpha = 0.24 + star.size / 5;
+        ctx.globalAlpha = 0.12 + star.size / 7;
         ctx.fillRect(
           star.x,
           star.y,
@@ -175,11 +215,22 @@
       for (let lane = 0; lane < config.LANES; lane += 1) {
         const x = lane * config.LANE_WIDTH;
         const flashState = snapshot.effects.laneFlashes[lane];
+        const laneActive = lane === snapshot.playerLane;
         ctx.fillStyle =
-          lane === snapshot.playerLane
-            ? "rgba(74,199,165,0.12)"
-            : "rgba(255,255,255,0.025)";
+          laneActive
+            ? "rgba(123,220,255,0.1)"
+            : "rgba(255,255,255,0.022)";
         ctx.fillRect(x, 0, config.LANE_WIDTH, config.HEIGHT);
+
+        if (laneActive) {
+          ctx.save();
+          ctx.globalAlpha = 0.2;
+          ctx.strokeStyle = "#7bdcff";
+          ctx.lineWidth = 2;
+          roundedRect(x + 9, 16, config.LANE_WIDTH - 18, config.HEIGHT - 32, 8);
+          ctx.stroke();
+          ctx.restore();
+        }
 
         if (flashState.alpha > 0) {
           ctx.save();
@@ -190,9 +241,9 @@
         }
 
         if (lane > 0) {
-          ctx.strokeStyle = "rgba(255,255,255,0.16)";
+          ctx.strokeStyle = "rgba(255,255,255,0.12)";
           ctx.lineWidth = 2;
-          ctx.setLineDash([14, 14]);
+          ctx.setLineDash([10, 18]);
           ctx.beginPath();
           ctx.moveTo(x, 0);
           ctx.lineTo(x, config.HEIGHT);
@@ -204,9 +255,9 @@
       drawBoostMotion(snapshot);
       drawCatchZone(snapshot);
 
-      ctx.strokeStyle = "rgba(241,211,91,0.76)";
-      ctx.lineWidth = 3;
-      ctx.setLineDash([16, 12]);
+      ctx.strokeStyle = "rgba(255,216,92,0.72)";
+      ctx.lineWidth = 4;
+      ctx.setLineDash([18, 12]);
       ctx.beginPath();
       ctx.moveTo(18, config.CATCH_Y);
       ctx.lineTo(config.WIDTH - 18, config.CATCH_Y);
@@ -220,7 +271,7 @@
       const activeItem = snapshot.wave
         ? snapshot.wave.items.find((item) => item.lane === snapshot.playerLane)
         : null;
-      const zoneColor = activeItem && activeItem.kind === "empty" ? "#4ac7a5" : "#f1d35b";
+      const zoneColor = activeItem && activeItem.kind === "empty" ? "#7bdcff" : "#ffd85c";
       const waveY = snapshot.wave ? snapshot.wave.y : -Infinity;
       const approaching =
         snapshot.wave &&
@@ -232,17 +283,18 @@
         const x = lane * config.LANE_WIDTH;
         const activeLane = lane === snapshot.playerLane;
         ctx.fillStyle = activeLane
-          ? `rgba(241,211,91,${approaching ? 0.18 : 0.09})`
+          ? `rgba(255,216,92,${approaching ? 0.16 : 0.07})`
           : "rgba(255,255,255,0.025)";
         if (activeLane && activeItem && activeItem.kind === "empty") {
-          ctx.fillStyle = `rgba(74,199,165,${approaching ? 0.17 : 0.08})`;
+          ctx.fillStyle = `rgba(123,220,255,${approaching ? 0.16 : 0.07})`;
         }
-        ctx.fillRect(x + 10, top, config.LANE_WIDTH - 20, height);
+        roundedRect(x + 12, top, config.LANE_WIDTH - 24, height, 10);
+        ctx.fill();
       }
 
       const activeX = laneCenter(snapshot.playerLane);
       ctx.strokeStyle = zoneColor;
-      ctx.globalAlpha = approaching ? 0.88 : 0.45;
+      ctx.globalAlpha = approaching ? 0.82 : 0.44;
       ctx.lineWidth = approaching ? 4 : 2;
       roundedRect(
         activeX - config.LANE_WIDTH / 2 + 16,
@@ -274,7 +326,7 @@
       const baseDashLength = 22 + stack * 2.2;
 
       ctx.save();
-      ctx.strokeStyle = "#4ac7a5";
+      ctx.strokeStyle = "#7bdcff";
       ctx.lineWidth = 1.4 + intensity * 2.1;
       ctx.lineCap = "round";
 
@@ -300,7 +352,7 @@
           const dashLength = baseDashLength * (0.72 + seededUnit(railSeed + 13) * 0.72);
           const slant = (seededUnit(railSeed + 21) - 0.5) * (10 + intensity * 18);
 
-          ctx.globalAlpha = 0.06 + intensity * (0.11 + seededUnit(railSeed + 33) * 0.11);
+          ctx.globalAlpha = 0.05 + intensity * (0.09 + seededUnit(railSeed + 33) * 0.1);
           ctx.lineWidth = 1.1 + intensity * (1.4 + seededUnit(railSeed + 37) * 1.6);
 
           for (let y = -laneStep + laneOffset + phase; y < config.HEIGHT + laneStep; y += laneStep) {
@@ -347,34 +399,51 @@
         const handled = wave.handled && activeLane;
         const pulse = handled ? 0.44 : 1;
         const boostGlow = Math.min(8, (snapshot.speedStack || 0) * 0.8);
+        const tileColor = digitPalette[Math.abs(item.value - 1) % digitPalette.length];
+        const tileAccent = item.value % 2 === 0 ? "#ffffff" : "#2b2444";
+        const wobble = nearCatch ? Math.sin(snapshot.timestamp / 48 + item.value) * 0.04 : 0;
 
         ctx.save();
         ctx.translate(x, y);
+        ctx.rotate(wobble);
         ctx.scale(tilePulse, tilePulse);
         ctx.globalAlpha = pulse;
         ctx.shadowColor = inCatchZone
-          ? "rgba(241,211,91,0.74)"
+          ? "rgba(255,216,92,0.7)"
           : "rgba(0,0,0,0.38)";
         ctx.shadowBlur = inCatchZone ? 26 : 14 + boostGlow;
         ctx.shadowOffsetY = 10;
+        const tileGradient = ctx.createLinearGradient(0, -itemSize / 2, 0, itemSize / 2);
+        tileGradient.addColorStop(0, "#fff3a8");
+        tileGradient.addColorStop(0.14, tileColor);
+        tileGradient.addColorStop(1, "#24314d");
         roundedRect(
           -itemSize / 2,
           -itemSize / 2,
           itemSize,
           itemSize,
-          8,
+          13,
         );
-        ctx.fillStyle = "#f2d55b";
+        ctx.fillStyle = tileGradient;
         ctx.fill();
         ctx.shadowColor = "transparent";
-        ctx.strokeStyle = inCatchZone ? "#f2f2ea" : "rgba(20,20,20,0.35)";
+        ctx.strokeStyle = inCatchZone ? "#f2f2ea" : "rgba(255,255,255,0.28)";
         ctx.lineWidth = inCatchZone ? 5 : 3;
         ctx.stroke();
 
-        ctx.fillStyle = "#17140a";
+        ctx.globalAlpha = pulse * 0.24;
+        ctx.fillStyle = "#ffffff";
+        roundedRect(-itemSize * 0.32, -itemSize * 0.34, itemSize * 0.38, itemSize * 0.12, 6);
+        ctx.fill();
+        ctx.globalAlpha = pulse;
+
+        ctx.fillStyle = item.value % 2 === 0 ? "#111521" : "#17140a";
+        ctx.strokeStyle = tileAccent;
+        ctx.lineWidth = 3;
         ctx.font = `900 ${Math.round(itemSize * 0.52)}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+        ctx.strokeText(String(item.value), 0, 2);
         ctx.fillText(String(item.value), 0, 2);
         ctx.restore();
       });
@@ -385,19 +454,19 @@
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(tilePulse, tilePulse);
-      ctx.globalAlpha = nearCatch ? 0.72 : 0.44;
-      ctx.strokeStyle = "#4ac7a5";
+      ctx.globalAlpha = nearCatch ? 0.82 : 0.52;
+      ctx.strokeStyle = "#7bdcff";
       ctx.lineWidth = inCatchZone ? 6 : 4;
-      ctx.shadowColor = inCatchZone ? "rgba(74,199,165,0.64)" : "transparent";
+      ctx.shadowColor = inCatchZone ? "rgba(123,220,255,0.58)" : "transparent";
       ctx.shadowBlur = inCatchZone ? 24 : 0;
       ctx.setLineDash([10, 10]);
-      roundedRect(-itemSize / 2, -itemSize / 2, itemSize, itemSize, 8);
+      roundedRect(-itemSize / 2, -itemSize / 2, itemSize, itemSize, 14);
       ctx.stroke();
       ctx.shadowColor = "transparent";
       ctx.setLineDash([]);
-      ctx.fillStyle = inCatchZone ? "rgba(74,199,165,0.16)" : "rgba(74,199,165,0.08)";
+      ctx.fillStyle = inCatchZone ? "rgba(123,220,255,0.16)" : "rgba(123,220,255,0.08)";
       ctx.fill();
-      ctx.fillStyle = "#4ac7a5";
+      ctx.fillStyle = "#7bdcff";
       ctx.font = `900 ${Math.max(12, Math.round(itemSize * 0.21))}px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -427,11 +496,11 @@
 
       if (boostWind > 0.02) {
         ctx.save();
-        ctx.globalAlpha = 0.18 + boostWind * 0.28;
-        fillPolygon([[-18, 7], [-72 - boostWind * 22, -18], [-28, 24]], "#4ac7a5");
-        fillPolygon([[18, 9], [72 + boostWind * 22, -13], [28, 25]], "#6ba8ff");
-        fillPolygon([[-10, 40], [-46 - boostWind * 20, 70], [2, 56]], "#f1d35b");
-        fillPolygon([[10, 40], [46 + boostWind * 20, 70], [-2, 56]], "#f1d35b");
+        ctx.globalAlpha = 0.14 + boostWind * 0.24;
+        fillPolygon([[-18, 7], [-72 - boostWind * 22, -18], [-28, 24]], "#7bdcff");
+        fillPolygon([[18, 9], [72 + boostWind * 22, -13], [28, 25]], "#b9a4ff");
+        fillPolygon([[-10, 40], [-46 - boostWind * 20, 70], [2, 56]], "#ffd85c");
+        fillPolygon([[10, 40], [46 + boostWind * 20, 70], [-2, 56]], "#ffd85c");
         ctx.restore();
       }
 
@@ -447,23 +516,23 @@
 
       drawLimbSegment(-25, 0, leftArmX, 28 - armStride * 6, 12, "#273248", "#101114");
       drawLimbSegment(25, 1, rightArmX, 30 + armStride * 6, 12, "#273248", "#101114");
-      drawLimbSegment(leftArmX, 28 - armStride * 6, leftArmX - 6, 42 - armStride * 2, 10, "#f1d35b", "#101114");
-      drawLimbSegment(rightArmX, 30 + armStride * 6, rightArmX + 6, 44 + armStride * 2, 10, "#f1d35b", "#101114");
+      drawLimbSegment(leftArmX, 28 - armStride * 6, leftArmX - 6, 42 - armStride * 2, 10, "#ffd85c", "#101114");
+      drawLimbSegment(rightArmX, 30 + armStride * 6, rightArmX + 6, 44 + armStride * 2, 10, "#ffd85c", "#101114");
 
       drawLimbSegment(-13, 40, leftKneeX, 58, 15, "#202a3d", "#101114");
       drawLimbSegment(leftKneeX, 58, leftFootX, 79, 13, "#273248", "#101114");
       drawLimbSegment(13, 40, rightKneeX, 58, 15, "#202a3d", "#101114");
       drawLimbSegment(rightKneeX, 58, rightFootX, 79, 13, "#273248", "#101114");
 
-      fillPolygon([[-38, -3], [-24, -16], [-10, -6], [-20, 13]], "#6ba8ff");
-      fillPolygon([[38, -3], [24, -16], [10, -6], [20, 13]], "#6ba8ff");
+      fillPolygon([[-38, -3], [-24, -16], [-10, -6], [-20, 13]], "#7bdcff");
+      fillPolygon([[38, -3], [24, -16], [10, -6], [20, 13]], "#7bdcff");
       strokePolygon([[-38, -3], [-24, -16], [-10, -6], [-20, 13]], "#101114", 2);
       strokePolygon([[38, -3], [24, -16], [10, -6], [20, 13]], "#101114", 2);
 
       fillPolygon([[-25, -9], [0, -19], [27, -10], [32, 25], [12, 48], [-13, 48], [-32, 24]], "#1f2940");
       fillPolygon([[-18, -5], [0, -13], [0, 43], [-19, 34], [-25, 13]], "#314264");
       fillPolygon([[0, -13], [19, -5], [25, 13], [18, 34], [0, 43]], "#24314d");
-      fillPolygon([[-10, 0], [12, 0], [17, 21], [0, 31], [-17, 21]], "#4ac7a5");
+      fillPolygon([[-10, 0], [12, 0], [17, 21], [0, 31], [-17, 21]], "#7bdcff");
       fillPolygon([[-7, 5], [8, 5], [11, 17], [0, 23], [-11, 17]], "#9fe5ff");
       strokePolygon([[-25, -9], [0, -19], [27, -10], [32, 25], [12, 48], [-13, 48], [-32, 24]], "#101114", 3);
 
@@ -474,9 +543,9 @@
       fillPolygon([[11, -54], [27, -37], [21, -33], [15, -43]], "#d9e6ec");
       strokePolygon([[-24, -30], [-13, -51], [11, -54], [27, -37], [23, -19], [3, -10], [-18, -15]], "#101114", 3);
 
-      fillPolygon([[-6, -15], [8, -15], [13, -7], [-10, -6]], "#f1d35b");
-      fillPolygon([[-21, 78], [-5, 75], [1, 84], [-18, 88], [-31, 84]], "#f1d35b");
-      fillPolygon([[21, 78], [5, 75], [-1, 84], [18, 88], [31, 84]], "#f1d35b");
+      fillPolygon([[-6, -15], [8, -15], [13, -7], [-10, -6]], "#ffd85c");
+      fillPolygon([[-21, 78], [-5, 75], [1, 84], [-18, 88], [-31, 84]], "#ffd85c");
+      fillPolygon([[21, 78], [5, 75], [-1, 84], [18, 88], [31, 84]], "#ffd85c");
 
       ctx.restore();
     }
@@ -500,9 +569,9 @@
         ctx.translate(floater.x, floater.y);
         ctx.scale(floater.scale, floater.scale);
         ctx.fillStyle = floater.color;
-        ctx.strokeStyle = "rgba(0,0,0,0.45)";
-        ctx.lineWidth = 6;
-        ctx.font = "950 24px Inter, system-ui, sans-serif";
+        ctx.strokeStyle = "rgba(8,11,18,0.72)";
+        ctx.lineWidth = 7;
+        ctx.font = "950 26px Inter, system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeText(floater.text, 0, 0);
@@ -563,7 +632,7 @@
           ? revealMatchedDigits(lastGuess.guess, snapshot.gameState.secret)
           : [];
       const label = showingCurrent || !lastGuess ? "PICK" : "HIT";
-      const color = showingCurrent || !lastGuess ? "#f1d35b" : "#4ac7a5";
+      const color = showingCurrent || !lastGuess ? "#ffd85c" : "#7bdcff";
       const width = 140;
       const height = 70;
       const x = config.WIDTH / 2 - width / 2;
@@ -574,11 +643,16 @@
       const firstSlotX = x + 17;
 
       ctx.save();
-      ctx.fillStyle = "rgba(16,17,20,0.54)";
+      const panelGradient = ctx.createLinearGradient(x, y, x, y + height);
+      panelGradient.addColorStop(0, "rgba(38,47,76,0.82)");
+      panelGradient.addColorStop(1, "rgba(15,19,34,0.78)");
+      ctx.fillStyle = panelGradient;
       roundedRect(x, y, width, height, 8);
       ctx.fill();
-      ctx.strokeStyle = `rgba(242,242,234,${showingCurrent ? 0.24 : 0.16})`;
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = showingCurrent
+        ? "rgba(255,216,92,0.5)"
+        : "rgba(123,220,255,0.42)";
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       ctx.fillStyle = color;
@@ -590,14 +664,14 @@
       for (let index = 0; index < 3; index += 1) {
         const value = values[index];
         const slotX = firstSlotX + index * (slotSize + gap);
-        ctx.fillStyle = value ? "rgba(242,242,234,0.12)" : "rgba(255,255,255,0.045)";
+        ctx.fillStyle = value ? "rgba(255,216,92,0.13)" : "rgba(255,255,255,0.045)";
         roundedRect(slotX, slotY, slotSize, slotSize, 7);
         ctx.fill();
         ctx.strokeStyle = value ? color : "rgba(255,255,255,0.1)";
         ctx.lineWidth = value ? 2 : 1;
         ctx.stroke();
 
-        ctx.fillStyle = value ? color : "rgba(242,242,234,0.28)";
+        ctx.fillStyle = value ? "#f2f2ea" : "rgba(242,242,234,0.28)";
         ctx.font = "950 18px Inter, system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -611,24 +685,29 @@
       const values = Array.isArray(snapshot.nextWaveDigits)
         ? snapshot.nextWaveDigits
         : [];
-      const width = 140;
-      const height = 62;
-      const x = config.WIDTH / 2 - width / 2;
-      const y = 96;
-      const slotSize = 28;
-      const gap = 8;
-      const slotY = y + 27;
-      const firstSlotX = x + 18;
+      const pickTrayWidth = 140;
+      const gapFromPickTray = 10;
+      const width = 128;
+      const height = 70;
+      const x = config.WIDTH / 2 + pickTrayWidth / 2 + gapFromPickTray;
+      const y = 18;
+      const slotSize = 27;
+      const gap = 7;
+      const slotY = y + 33;
+      const firstSlotX = x + 13;
 
       ctx.save();
-      ctx.fillStyle = "rgba(16,17,20,0.48)";
+      const nextGradient = ctx.createLinearGradient(x, y, x, y + height);
+      nextGradient.addColorStop(0, "rgba(35,47,78,0.78)");
+      nextGradient.addColorStop(1, "rgba(14,18,32,0.74)");
+      ctx.fillStyle = nextGradient;
       roundedRect(x, y, width, height, 8);
       ctx.fill();
-      ctx.strokeStyle = "rgba(107,168,255,0.34)";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(123,220,255,0.42)";
+      ctx.lineWidth = 2;
       ctx.stroke();
 
-      ctx.fillStyle = "#9fc5ff";
+      ctx.fillStyle = "#7bdcff";
       ctx.font = "900 11px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -637,10 +716,10 @@
       for (let index = 0; index < 3; index += 1) {
         const value = values[index];
         const slotX = firstSlotX + index * (slotSize + gap);
-        ctx.fillStyle = value ? "rgba(107,168,255,0.14)" : "rgba(255,255,255,0.04)";
+        ctx.fillStyle = value ? "rgba(123,220,255,0.14)" : "rgba(255,255,255,0.04)";
         roundedRect(slotX, slotY, slotSize, slotSize, 7);
         ctx.fill();
-        ctx.strokeStyle = value ? "rgba(107,168,255,0.62)" : "rgba(255,255,255,0.1)";
+        ctx.strokeStyle = value ? "rgba(123,220,255,0.62)" : "rgba(255,255,255,0.1)";
         ctx.lineWidth = value ? 2 : 1;
         ctx.stroke();
 
@@ -683,14 +762,14 @@
       const height = 58;
 
       ctx.save();
-      ctx.fillStyle = "rgba(16,17,20,0.62)";
+      ctx.fillStyle = "rgba(21,28,47,0.72)";
       roundedRect(x, y, width, height, 8);
       ctx.fill();
-      ctx.strokeStyle = `rgba(74,199,165,${0.35 + level * 0.4})`;
+      ctx.strokeStyle = `rgba(123,220,255,${0.28 + level * 0.36})`;
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      ctx.fillStyle = "#aef4dc";
+      ctx.fillStyle = "#7bdcff";
       ctx.font = "900 12px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -704,14 +783,14 @@
       ctx.fillStyle = "rgba(255,255,255,0.12)";
       roundedRect(x + 14, y + 41, width - 28, 6, 3);
       ctx.fill();
-      ctx.fillStyle = "#4ac7a5";
+      ctx.fillStyle = "#7bdcff";
       roundedRect(x + 14, y + 41, (width - 28) * level, 6, 3);
       ctx.fill();
       ctx.restore();
     }
 
     function drawEndOverlay(title, subtitle, color) {
-      ctx.fillStyle = "rgba(16,17,20,0.78)";
+      ctx.fillStyle = "rgba(9,12,20,0.82)";
       ctx.fillRect(0, 0, config.WIDTH, config.HEIGHT);
       ctx.fillStyle = color;
       ctx.font = "950 58px Inter, system-ui, sans-serif";

@@ -817,43 +817,22 @@
       ctx.restore();
     }
 
-    function drawBoot(cx, cy, direction, swing, boostWind) {
-      const edge = "#111927";
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.scale(direction, 1);
-      ctx.rotate(swing * 0.28);
-
-      fillPolygon([[-21, -7], [7, -9], [22, -1], [14, 9], [-16, 10], [-27, 3]], "#f1d35b");
-      fillPolygon([[3, -6], [20, -1], [13, 6], [-2, 4]], "#fff2a5");
-      fillPolygon([[-16, 8], [13, 7], [8, 13], [-22, 13]], "#d7848b");
-      strokePolygon([[-21, -7], [7, -9], [22, -1], [14, 9], [-16, 10], [-27, 3]], edge, 1.5);
-
-      if (boostWind > 0.05) {
-        ctx.globalAlpha = 0.18 + boostWind * 0.26;
-        fillPolygon([[-14, 10], [-42 - boostWind * 18, 19], [-9, 17]], boostGlowColor());
-      }
-
-      ctx.restore();
-    }
-
     function drawPlayer(snapshot) {
       const x = laneCenter(snapshot.playerLane);
       const stack = snapshot.speedStack || 0;
       const boostWind = boostMotionLevel(snapshot);
-      const run = snapshot.timestamp / Math.max(52, 84 - stack * 4.2);
-      const stride = Math.sin(run);
-      const counterStride = Math.sin(run + Math.PI);
-      const bob = Math.sin(run * 2) * 2.4;
+      const hover = Math.sin(snapshot.timestamp / 150);
+      const bob = hover * 2.4;
       const y = config.PLAYER_Y + bob;
-      const playerScale = snapshot.tuning.playerScale;
+      const playerScale = snapshot.tuning.playerScale * 0.94;
       const edge = "#111927";
-      const suitDark = "#162033";
-      const suitMid = "#26375b";
-      const suitLight = "#36527e";
-      const visor = "#9fe5ff";
+      const hullDark = "#162033";
+      const hullMid = "#26375b";
+      const hullLight = "#6ba8ff";
+      const glass = "#9fe5ff";
       const accent = "#6ba8ff";
+      const flameLength = 28 + stack * 3.5 + boostWind * 46;
+      const flamePulse = 1 + Math.sin(snapshot.timestamp / 54) * 0.08;
 
       ctx.save();
       ctx.translate(x, y);
@@ -861,91 +840,83 @@
 
       ctx.fillStyle = "rgba(0,0,0,0.28)";
       ctx.beginPath();
-      ctx.ellipse(0, 62, 43, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 57, 44, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.rotate(-0.04 - boostWind * 0.05);
+      ctx.rotate(hover * 0.018 - boostWind * 0.025);
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
 
-      if (boostWind > 0.02) {
-        ctx.save();
-        ctx.globalAlpha = 0.16 + boostWind * 0.24;
-        fillPolygon([[-20, 14], [-68 - boostWind * 26, 2], [-27, 30]], boostGlowColor());
-        fillPolygon([[20, 14], [68 + boostWind * 26, 3], [27, 30]], accent);
-        fillPolygon([[-8, 49], [-38 - boostWind * 22, 72], [4, 61]], "#f1d35b");
-        fillPolygon([[8, 49], [38 + boostWind * 22, 72], [-4, 61]], "#f1d35b");
-        ctx.restore();
-      }
-
-      fillPolygon([[-28, -9], [-40, 24], [-26, 45], [-13, 20], [-16, -4]], "#1c2943");
-      fillPolygon([[28, -9], [40, 24], [26, 45], [13, 20], [16, -4]], "#1c2943");
-      strokePolygon([[-28, -9], [-40, 24], [-26, 45], [-13, 20], [-16, -4]], edge, 1.4);
-      strokePolygon([[28, -9], [40, 24], [26, 45], [13, 20], [16, -4]], edge, 1.4);
-
-      const leftArm = counterStride;
-      const rightArm = stride;
-      const leftElbowX = -36 + leftArm * 10;
-      const leftElbowY = 16 - leftArm * 7;
-      const rightElbowX = 36 + rightArm * 10;
-      const rightElbowY = 16 - rightArm * 7;
-      const leftHandX = leftElbowX - 8 - leftArm * 7;
-      const leftHandY = 38 + leftArm * 9;
-      const rightHandX = rightElbowX + 8 + rightArm * 7;
-      const rightHandY = 38 + rightArm * 9;
-
-      drawLimbSegment(-23, 0, leftElbowX, leftElbowY, 11, suitMid, edge, 1.35);
-      drawLimbSegment(leftElbowX, leftElbowY, leftHandX, leftHandY, 9, "#dce7ed", edge, 1.25);
-      drawLimbSegment(23, 0, rightElbowX, rightElbowY, 11, suitMid, edge, 1.35);
-      drawLimbSegment(rightElbowX, rightElbowY, rightHandX, rightHandY, 9, "#dce7ed", edge, 1.25);
-
-      const leftLeg = stride;
-      const rightLeg = -stride;
-      const leftKneeX = -13 + leftLeg * 16;
-      const rightKneeX = 13 + rightLeg * 16;
-      const leftKneeY = 55 + Math.max(-leftLeg, 0) * 5 - Math.max(leftLeg, 0) * 4;
-      const rightKneeY = 55 + Math.max(-rightLeg, 0) * 5 - Math.max(rightLeg, 0) * 4;
-      const leftFootX = -24 + leftLeg * 21;
-      const rightFootX = 24 + rightLeg * 21;
-      const leftFootY = 80 - Math.max(leftLeg, 0) * 8 + Math.max(-leftLeg, 0) * 3;
-      const rightFootY = 80 - Math.max(rightLeg, 0) * 8 + Math.max(-rightLeg, 0) * 3;
-
-      drawLimbSegment(-11, 39, leftKneeX, leftKneeY, 14, "#202f50", edge, 1.35);
-      drawLimbSegment(leftKneeX, leftKneeY, leftFootX, leftFootY, 12, suitMid, edge, 1.25);
-      drawLimbSegment(11, 39, rightKneeX, rightKneeY, 14, "#202f50", edge, 1.35);
-      drawLimbSegment(rightKneeX, rightKneeY, rightFootX, rightFootY, 12, suitMid, edge, 1.25);
-
-      fillPolygon([[-38, -4], [-24, -17], [-9, -8], [-19, 13]], accent);
-      fillPolygon([[38, -4], [24, -17], [9, -8], [19, 13]], accent);
-      strokePolygon([[-38, -4], [-24, -17], [-9, -8], [-19, 13]], edge, 1.5);
-      strokePolygon([[38, -4], [24, -17], [9, -8], [19, 13]], edge, 1.5);
-
-      fillPolygon([[-24, -10], [0, -20], [25, -10], [30, 23], [12, 49], [-12, 49], [-30, 23]], suitDark);
-      fillPolygon([[-18, -5], [0, -14], [0, 43], [-18, 34], [-24, 13]], suitLight);
-      fillPolygon([[0, -14], [18, -5], [24, 13], [18, 34], [0, 43]], suitMid);
-      fillPolygon([[-12, 2], [12, 2], [17, 21], [0, 32], [-17, 21]], "#f2f2ea");
-      fillPolygon([[-7, 7], [8, 7], [11, 17], [0, 24], [-11, 17]], visor);
-      strokePolygon([[-24, -10], [0, -20], [25, -10], [30, 23], [12, 49], [-12, 49], [-30, 23]], edge, 2);
-
-      ctx.fillStyle = "#eef4f7";
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.28 + boostWind * 0.44;
+      fillPolygon(
+        [[-13, 36], [-25 - boostWind * 12, 56 + flameLength * flamePulse], [-4, 48]],
+        "#f1d35b",
+      );
+      fillPolygon(
+        [[13, 36], [25 + boostWind * 12, 56 + flameLength * flamePulse], [4, 48]],
+        "#f1d35b",
+      );
+      ctx.globalAlpha = 0.38 + boostWind * 0.42;
+      fillPolygon(
+        [[-7, 38], [0, 58 + flameLength * 0.92], [7, 38]],
+        boostGlowColor(),
+      );
+      ctx.globalAlpha = 0.22 + boostWind * 0.18;
+      ctx.fillStyle = colorWithAlpha(boostGlowColor(), 0.7);
       ctx.beginPath();
-      ctx.ellipse(0, -35, 23, 24, -0.08, 0, Math.PI * 2);
+      ctx.ellipse(0, 48 + flameLength * 0.3, 16 + boostWind * 12, flameLength * 0.34, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      fillPolygon([[-42, 8], [-70, 38], [-33, 31], [-17, 13]], hullMid);
+      fillPolygon([[42, 8], [70, 38], [33, 31], [17, 13]], hullMid);
+      fillPolygon([[-48, 16], [-72, 35], [-45, 38]], "#f1d35b");
+      fillPolygon([[48, 16], [72, 35], [45, 38]], "#f1d35b");
+      strokePolygon([[-42, 8], [-70, 38], [-33, 31], [-17, 13]], edge, 1.6);
+      strokePolygon([[42, 8], [70, 38], [33, 31], [17, 13]], edge, 1.6);
+
+      fillPolygon([[-21, -37], [0, -68], [21, -37], [34, 21], [18, 47], [-18, 47], [-34, 21]], hullDark);
+      fillPolygon([[-14, -34], [0, -60], [0, 42], [-15, 31], [-24, 6]], hullLight);
+      fillPolygon([[0, -60], [14, -34], [24, 6], [15, 31], [0, 42]], hullMid);
+      strokePolygon([[-21, -37], [0, -68], [21, -37], [34, 21], [18, 47], [-18, 47], [-34, 21]], edge, 2);
+
+      ctx.fillStyle = "#f2f2ea";
+      ctx.beginPath();
+      ctx.ellipse(0, -17, 20, 24, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = edge;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.8;
       ctx.stroke();
 
-      fillPolygon([[-19, -37], [-9, -47], [12, -47], [21, -36], [15, -25], [-14, -24]], "#101824");
-      fillPolygon([[-13, -36], [-5, -42], [13, -42], [16, -35], [9, -30], [-11, -29]], visor);
-      fillPolygon([[-23, -36], [-13, -55], [-6, -47], [-16, -36]], "#cbd7df");
-      fillPolygon([[12, -54], [25, -38], [19, -34], [12, -45]], "#dfe9ee");
-      fillPolygon([[-4, -60], [5, -60], [7, -54], [-6, -54]], "#f1d35b");
-      strokePolygon([[-19, -37], [-9, -47], [12, -47], [21, -36], [15, -25], [-14, -24]], edge, 1.35);
+      const glassGradient = ctx.createLinearGradient(-12, -34, 15, 0);
+      glassGradient.addColorStop(0, "#d7fbff");
+      glassGradient.addColorStop(0.46, glass);
+      glassGradient.addColorStop(1, "#5f9bd4");
+      ctx.fillStyle = glassGradient;
+      ctx.beginPath();
+      ctx.ellipse(0, -18, 13, 17, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-      fillPolygon([[-5, -17], [8, -17], [13, -8], [-11, -7]], "#f1d35b");
+      ctx.globalAlpha = 0.68;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.ellipse(-5, -24, 4, 7, -0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
 
-      drawBoot(leftFootX, leftFootY, -1, leftLeg, boostWind);
-      drawBoot(rightFootX, rightFootY, 1, rightLeg, boostWind);
+      fillPolygon([[-16, 8], [0, -1], [16, 8], [10, 28], [0, 35], [-10, 28]], "#f2f2ea");
+      fillPolygon([[-9, 12], [0, 6], [9, 12], [5, 24], [0, 28], [-5, 24]], accent);
+      fillPolygon([[-4, -58], [4, -58], [7, -45], [-7, -45]], "#f1d35b");
+
+      ctx.fillStyle = colorWithAlpha(boostGlowColor(), 0.7);
+      ctx.beginPath();
+      ctx.ellipse(-22, 34, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(22, 34, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
 
       ctx.restore();
     }
